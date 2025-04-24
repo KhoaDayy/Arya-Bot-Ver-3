@@ -21,17 +21,16 @@ module.exports = {
         const userSetting = await VoiceUser.findOne({
           guildId: newState.guild.id,
           userId:  member.id
-        })
+        });
 
         const nameToUse = userSetting?.channelName
-          ? userSetting.channelName
-          : `${member.displayName}'s channel`;
-
-          const newCh = await newState.guild.channels.create({
-            name:   nameToUse,
-            type:   ChannelType.GuildVoice,
-            parent: templateCh.parentId
-        });
+            ? userSetting.channelName
+            : `${member.displayName}'s channel`;
+            const newCh = await newState.guild.channels.create({
+              name:   nameToUse,
+              type:   ChannelType.GuildVoice,
+              parent: templateCh.parentId
+            });
         
         // Ghi mapping kênh động
         await VoiceParent.create({
@@ -176,17 +175,21 @@ module.exports = {
       }
     }
 
-    if (oldState.channelId && !newState.channelId) {
-      const par = await VoiceParent.findOne({ channelId: oldState.channelId });
-      if (par) {
-        const oldCh = oldState.channel;
-        const guildId = oldState.guild.id;
-        const tpl = await VoiceTemplate.findOne({ guildId });
-        if (oldCh.members.size === 0 && oldCh.id !== tpl.templateId) {
-          await oldCh.delete().catch(console.error);
-          await VoiceParent.deleteOne({ channelId: oldState.channelId });
+      if (oldState.channelId && !newState.channelId) {
+          const par = await VoiceParent.findOne({ channelId: oldState.channelId });
+          if (par) {
+            const oldCh = await oldState.guild.channels
+              .fetch(oldState.channelId)
+              .catch(() => null);
+            if (!oldCh) return;
+      
+            const tpl = await VoiceTemplate.findOne({ guildId: oldState.guild.id });
+      
+            if (oldCh.members.size === 0 && oldCh.id !== tpl.templateId) {
+              await oldCh.delete().catch(console.error);
+              await VoiceParent.deleteOne({ channelId: oldState.channelId });
+            }
+          }
         }
-      }
-    }
   },
 };
