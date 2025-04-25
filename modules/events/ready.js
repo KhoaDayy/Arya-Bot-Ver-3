@@ -1,10 +1,36 @@
 // modules/events/ready.js
+const { ActivityType } = require("discord.js");
 const { loadConfig } = require("../../utils/statsConfig");
+
+const activities = [
+  "把回忆拼好给你",
+  "Jumping Machine (跳楼机)",
+  "器张",
+  "哪里都是你",
+  "追光者",
+  "怎麼了",
+  "回到夏天",
+  "就忘了吧",
+];
 
 module.exports = {
   name: "ready",
   once: true,
   async execute(client) {
+    let i = 0;
+    setInterval(() => {
+      client.user.setPresence({
+        status: "idle",
+        activities: [
+          {
+            name: `🎶${activities[i]}`,
+            type: ActivityType.Listening,
+          },
+        ],
+      });
+      i = (i + 1) % activities.length;
+    }, 200 * 1000); 
+
     const config = loadConfig();
     const guildIds = Object.keys(config);
     if (guildIds.length === 0) return;
