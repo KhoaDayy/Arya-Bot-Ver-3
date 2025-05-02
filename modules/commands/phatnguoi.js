@@ -7,8 +7,8 @@ module.exports = {
     .setDescription('Kiểm tra phạt nguội theo biển số')
     .addStringOption(opt =>
       opt.setName('bien_so')
-         .setDescription('Ví dụ: 51G-693.53')
-         .setRequired(true)
+         .setDescription('Ví dụ: 51G69353')
+         .setRequired(true) 
     ),
 
   async execute(interaction) {
