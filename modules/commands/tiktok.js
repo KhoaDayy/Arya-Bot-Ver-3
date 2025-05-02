@@ -84,7 +84,7 @@ module.exports = {
       });
       try {
         const res = await axios.get(
-          `https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(
+          `https://api.hasukatsu.online/tiktok/info?username=${encodeURIComponent(
             username
           )}`
         );
@@ -139,7 +139,7 @@ module.exports = {
 
       try {
         const res = await axios.get(
-          `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`
+          `https://api.hasukatsu.online/tiktok/video?link=${encodeURIComponent(url)}`
         );
         const data = res.data.data;
 
@@ -222,7 +222,7 @@ module.exports = {
 
       try {
         const res = await axios.get(
-          `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`
+          `https://api.hasukatsu.online/tiktok/video?link=${encodeURIComponent(url)}`
         );
         const data = res.data.data;
         const audioPath = path.join(cacheDir, `tiktok-audio-${Date.now()}.mp3`);
@@ -278,7 +278,7 @@ module.exports = {
       });
       try {
         const res = await axios.get(
-          `https://www.tikwm.com/api/feed/search?keywords=${encodeURIComponent(
+          `https://api.hasukatsu.online/tiktok/search?keyword=${encodeURIComponent(
             keyword
           )}`
         );
@@ -315,7 +315,7 @@ module.exports = {
       });
       try {
         const res = await axios.get(
-          "https://www.tikwm.com/api/feed/list?region=VN"
+          "https://api.hasukatsu.online/tiktok/trending"
         );
         const list = res.data.data.slice(0, 5);
 
@@ -348,7 +348,7 @@ module.exports = {
       });
       try {
         const res = await axios.get(
-          `https://www.tikwm.com/api/user/posts?unique_id=${encodeURIComponent(
+          `https://api.hasukatsu.online/tiktok/post?username=${encodeURIComponent(
             username
           )}`
         );
