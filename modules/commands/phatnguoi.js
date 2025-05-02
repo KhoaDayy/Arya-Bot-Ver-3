@@ -16,7 +16,7 @@ module.exports = {
     await interaction.deferReply();
 
     try {
-      const res = await axios.get(`https://api.sumiproject.net/gtl/phatnguoi?bien_so=${encodeURIComponent(bienSo)}`);
+      const res = await axios.get(`https://api.hasukatsu.online/phatnguoi?input=${encodeURIComponent(bienSo)}`);
       const body = res.data;
       if (body.status !== 1 || !body.data.length) {
         return interaction.editReply('Không tìm thấy kết quả phạt nguội.');
