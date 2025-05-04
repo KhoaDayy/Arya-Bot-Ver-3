@@ -6,6 +6,7 @@ module.exports = {
     data: new SlashCommandBuilder()
       .setName('configstats')
       .setDescription('🛠 Thực hiện modal để cấu hình kênh thống kê server'),
+    category: '🔧 Quản trị (Admin)',
   
     async execute(interaction) {
       // Chỉ admin mới được quyền sử dụng

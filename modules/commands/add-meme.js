@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require("discord.js");
 const axios = require("axios");
 const FormData = require("form-data");
 const path = require("path");
+const { category } = require("./tarot");
 
 const LIST_ID = process.env.LIST_ID;
 const OWNER_ID = process.env.OWNER_ID;
@@ -16,6 +17,7 @@ module.exports = {
         .setDescription("Tải lên tệp ảnh (PNG/JPEG/GIF)")
         .setRequired(true)
     ),
+    category: '🔧 Quản trị (Admin)',
 
   async execute(interaction) {
     // 1) Kiểm tra quyền: chỉ LIST_ID hoặc OWNER_ID mới được phép

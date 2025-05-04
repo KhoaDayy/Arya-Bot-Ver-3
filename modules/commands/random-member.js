@@ -14,7 +14,7 @@ module.exports = {
         .setMinValue(1)
         .setRequired(false)
     ),
-
+  category: '🎉 Giải trí & Game',
   async execute(interaction) {
     // Chỉ dùng được trong group
     if (!interaction.inGuild()) {

@@ -25,6 +25,7 @@ module.exports = {
     .addSubcommand((sub) =>
       sub.setName("delete").setDescription("Xóa kênh mẫu và reset hệ thống")
     ),
+    category: "🔧 Quản trị (Admin)",
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();

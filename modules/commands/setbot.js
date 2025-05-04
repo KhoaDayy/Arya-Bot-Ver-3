@@ -25,6 +25,7 @@ module.exports = {
         .setDescription('Tải lên tệp ảnh (PNG/JPEG/GIF)')
         .setRequired(true)
     ),
+  category: '🔧 Quản trị (Admin)',
 
   async execute(interaction) {
     // 1. Kiểm tra quyền

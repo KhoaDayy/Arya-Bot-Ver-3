@@ -10,6 +10,7 @@ module.exports = {
          .setDescription('Ví dụ: 51G69353')
          .setRequired(true) 
     ),
+  category: '📝 Thông tin (Info)',
 
   async execute(interaction) {
     const bienSo = interaction.options.getString('bien_so').trim();

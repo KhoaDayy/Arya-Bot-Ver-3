@@ -70,6 +70,7 @@ module.exports = {
             .setRequired(true)
         )
     ),
+  category: "📝 Thông tin (Info)",
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();

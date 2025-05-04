@@ -10,6 +10,7 @@ module.exports = {
         .setDescription('Số thứ tự lá bài muốn rút (nếu biết)')
         .setRequired(false)
     ),
+    category: '🎉 Giải trí & Game',
 
   async execute(interaction) {
     await interaction.deferReply();

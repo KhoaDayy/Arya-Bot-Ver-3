@@ -27,7 +27,7 @@ const {
             o.setName("file").setDescription("Ảnh tải lên").setRequired(true)
           )
       ),
-  
+    category: "🎬 Media & AI",
     async execute(interaction) {
       await interaction.deferReply();
       const sub = interaction.options.getSubcommand();

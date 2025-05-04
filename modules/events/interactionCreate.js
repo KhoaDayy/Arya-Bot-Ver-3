@@ -13,6 +13,16 @@ const {
 module.exports = {
   name: "interactionCreate",
   async execute(interaction, client) {
+    if (interaction.isAutocomplete()) {
+      const cmd = client.commands.get(interaction.commandName);
+      if (!cmd || typeof cmd.autocomplete !== 'function') return;
+      try {
+        await cmd.autocomplete(interaction);
+      } catch (err) {
+        console.error("Autocomplete error:", err);
+      }
+      return;
+    }
     if (
       interaction.isModalSubmit() &&
       interaction.customId.startsWith("rename_voice_")

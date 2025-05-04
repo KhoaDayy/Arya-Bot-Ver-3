@@ -59,6 +59,7 @@ module.exports = {
             .setRequired(true)
         )
     ),
+  category: "🎬 Media & AI",
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
     if (sub === "upscale") {

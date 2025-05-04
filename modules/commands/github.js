@@ -10,6 +10,7 @@ module.exports = {
         .setDescription('Tên đăng nhập GitHub (username)')
         .setRequired(true)
     ),
+  category: '📝 Thông tin (Info)',
 
   async execute(interaction) {
     const username = interaction.options.getString('username');

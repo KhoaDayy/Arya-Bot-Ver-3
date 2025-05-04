@@ -16,7 +16,7 @@ module.exports = {
     .setName('upt')
     .setDescription('Hiển thị thông tin hệ thống của bot')
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
-
+  category: '⚙️ Tiện ích (Utility)',
   async execute(interaction) {
     // Only administrators can use
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {

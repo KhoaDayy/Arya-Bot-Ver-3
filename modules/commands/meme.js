@@ -12,7 +12,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("meme")
     .setDescription("Meme cực troll sưu tầm bởi alex.ae79🐧"),
-
+  category: "🎉 Giải trí & Game",
   async execute(interaction) {
     try {
       const res = await axios.get('https://api.hasukatsu.online/images/meme');
