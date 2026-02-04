@@ -3,14 +3,11 @@ const { ActivityType } = require("discord.js");
 const { loadConfig } = require("../../utils/statsConfig");
 
 const activities = [
-  "把回忆拼好给你",
-  "Jumping Machine (跳楼机)",
-  "器张",
-  "哪里都是你",
-  "追光者",
-  "怎麼了",
-  "回到夏天",
-  "就忘了吧",
+  "Anh cũng sẽ phải quên, không cần em ở bên...",
+  "Anh phải làm gì để em đừng nghĩ em không quan trọng...",
+  "Vì ngày em đẹp nhất, là ngày anh mất em...",
+  "Em đã xa anh mất rồi người ơi...",
+  "350 xé đôi, con tim anh sẽ nguôi...",
 ];
 
 module.exports = {
@@ -29,7 +26,7 @@ module.exports = {
         ],
       });
       i = (i + 1) % activities.length;
-    }, 200 * 1000); 
+    }, 200 * 1000);
 
     const config = loadConfig();
     const guildIds = Object.keys(config);
@@ -57,7 +54,7 @@ module.exports = {
           const ch = guild.channels.cache.get(channels.bots);
           if (ch) await ch.setName(`🤖・Bots: ${botCount}`);
         }
-      } catch {}
+      } catch { }
     }
 
     for (const gid of guildIds) {
