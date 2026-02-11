@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require("discord.js");
 const axios = require("axios");
 const moment = require("moment-timezone");
 
@@ -10,12 +10,13 @@ module.exports = {
             option.setName("keyword")
                 .setDescription("Tên nhân vật hoặc ID")
                 .setRequired(true)),
+    category: "🎮 Game (WWM)",
     async execute(interaction) {
         await interaction.deferReply();
 
         try {
             const keyword = interaction.options.getString("keyword").trim();
-            const response = await axios.get(`https://wwm-api-server-v1.onrender.com/lookup`, {
+            const response = await axios.get(`http://localhost:3001/lookup`, {
                 params: { keyword: keyword }
             });
 

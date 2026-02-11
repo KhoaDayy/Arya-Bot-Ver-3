@@ -16,6 +16,7 @@ module.exports = {
                         .addChannelTypes(ChannelType.GuildForum)
                         .setRequired(true))
         ),
+    category: "⚙️ Hệ thống (System)",
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 

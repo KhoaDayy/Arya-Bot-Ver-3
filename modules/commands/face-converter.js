@@ -16,6 +16,7 @@ module.exports = {
             option.setName("qr")
                 .setDescription("Tải lên ảnh chứa mã QR")
                 .setRequired(false)),
+    category: "🎮 Game (WWM)",
     async execute(interaction) {
         await interaction.deferReply();
 
@@ -70,7 +71,7 @@ module.exports = {
             if (presetData) {
                 data = presetData.data;
             } else {
-                const response = await axios.get(`https://wwm-api-server-v1.onrender.com/convert`, {
+                const response = await axios.get(`http://localhost:3001/convert`, {
                     params: { id: finalId }
                 });
                 data = response.data;
