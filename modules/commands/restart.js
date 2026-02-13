@@ -16,7 +16,7 @@ module.exports = {
         }
 
         try {
-            await interaction.reply("⏳ Đang tiến hành Git Pull để lấy code mới nhất...");
+            await interaction.reply({ content: "⏳ Đang tiến hành Git Pull để lấy code mới nhất...", ephemeral: true });
 
             // Thực hiện Git Pull
             exec("git pull", async (error, stdout, stderr) => {
@@ -29,7 +29,7 @@ module.exports = {
                     pullMessage = `✅ Git Pull thành công!\n\`\`\`${stdout.slice(0, 500)}\`\`\``;
                 }
 
-                await interaction.followUp(`${pullMessage}\n🔄 Đang khởi động lại bot...`);
+                await interaction.followUp({ content: `${pullMessage}\n🔄 Đang khởi động lại bot...`, ephemeral: true });
 
                 console.log(`[RESTART] Bot được khởi động lại bởi ${interaction.user.tag}`);
 
