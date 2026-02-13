@@ -1,5 +1,4 @@
-// modules/commands/setavatar.js
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const axios = require('axios');
 require('dotenv/config');
 
@@ -9,6 +8,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('setbot')
         .setDescription('Thay đổi avatar hoặc banner của bot')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addStringOption(option =>
             option
                 .setName('type')
@@ -26,6 +26,7 @@ module.exports = {
                 .setRequired(true)
         ),
     category: '🔧 Quản trị (Admin)',
+    devOnly: true,
 
     async execute(interaction) {
         // 1. Kiểm tra quyền

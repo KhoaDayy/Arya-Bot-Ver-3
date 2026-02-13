@@ -11,29 +11,34 @@ module.exports = {
         .setRequired(false)
         .setAutocomplete(true)
     ),
-    category: "📝 Thông tin (Info)",
+  category: "📝 Thông tin (Info)",
 
   // Xử lý autocomplete cho option 'command'
   async autocomplete(interaction) {
     const focused = interaction.options.getFocused().toLowerCase();
-    const commands = Array.from(interaction.client.commands.keys());
-    const filtered = commands
-      .filter(cmd => cmd.startsWith(focused))
+    const isOwner = interaction.user.id === process.env.OWNER_ID;
+
+    const commands = Array.from(interaction.client.commands.values())
+      .filter(cmd => {
+        if (cmd.devOnly && !isOwner) return false;
+        return cmd.data.name.startsWith(focused);
+      })
       .slice(0, 25);
 
     await interaction.respond(
-      filtered.map(cmd => ({ name: `/${cmd}`, value: cmd }))
+      commands.map(cmd => ({ name: `/${cmd.data.name}`, value: cmd.data.name }))
     );
   },
 
   async execute(interaction) {
     const name = interaction.options.getString("command");
     const cmds = interaction.client.commands;
+    const isOwner = interaction.user.id === process.env.OWNER_ID;
 
     // Chi tiết 1 lệnh nếu có tên
     if (name) {
       const cmd = cmds.get(name);
-      if (!cmd) {
+      if (!cmd || (cmd.devOnly && !isOwner)) {
         return interaction.reply({
           content: `❌ Không tìm thấy lệnh \`${name}\`.`,
           ephemeral: true
@@ -53,7 +58,7 @@ module.exports = {
         embed.addFields({ name: "📂 Subcommands", value: subs.join("\n"), inline: false });
       }
 
-      // Options (global và của subcommands)
+      // Options
       const options = [];
       for (const o of data.options || []) {
         if (o.type === 1) {
@@ -78,6 +83,8 @@ module.exports = {
     // List tổng quát khi không có tên lệnh
     const sections = {};
     for (const cmd of cmds.values()) {
+      if (cmd.devOnly && !isOwner) continue; // Lọc lệnh owner-only
+
       const category = cmd.category || "❓Khác";
       if (!sections[category]) sections[category] = [];
       sections[category].push(`\`/${cmd.data.name}\` — ${cmd.data.description}`);
@@ -92,9 +99,9 @@ module.exports = {
       .setFooter({ text: `Yêu cầu bởi ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL({ dynamic: true }) })
       .setTimestamp();
 
-    // Thêm các category inline
+    // Thêm các category
     for (const [group, list] of Object.entries(sections)) {
-      helpEmbed.addFields({ name: group, value: list.join("\n"), inline: true });
+      helpEmbed.addFields({ name: group, value: list.join("\n"), inline: false });
     }
 
     await interaction.reply({ embeds: [helpEmbed], ephemeral: true });

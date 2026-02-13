@@ -1,10 +1,12 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const { exec } = require("child_process");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("restart")
-        .setDescription("Cập nhật code từ Git và khởi động lại bot."),
+        .setDescription("Cập nhật code từ Git và khởi động lại bot.")
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    devOnly: true,
     async execute(interaction) {
         if (interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
