@@ -104,7 +104,7 @@ module.exports = {
 
         try {
             const keyword = interaction.options.getString("keyword").trim();
-            const response = await axios.get(`http://localhost:3001/lookup`, {
+            const response = await axios.get(`http://localhost:3003/lookup`, {
                 params: { keyword: keyword }
             });
 
@@ -136,8 +136,7 @@ module.exports = {
                     iconURL: data.shot_img || undefined
                 })
                 .setTitle(`${sectInfo.emoji} ${data.nickname}`)
-                .setColor(status.isOnline ? "#57F287" : sectInfo.color)
-                .setThumbnail(data.shot_img || null);
+                .setColor(status.isOnline ? "#57F287" : sectInfo.color);
 
             // Description
             const descParts = [];
