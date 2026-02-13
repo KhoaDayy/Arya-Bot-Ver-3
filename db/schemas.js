@@ -30,10 +30,19 @@ const guildConfigSchema = new Schema({
   faceForumId: { type: String, default: null }
 }, { timestamps: true });
 
+const conversationSchema = new Schema({
+  userId: { type: String, required: true, index: true },
+  messages: [{
+    role: { type: String, enum: ['user', 'model'], required: true },
+    parts: [{ text: { type: String, required: true } }]
+  }]
+}, { timestamps: true });
+
 const VoiceTemplate = mongoose.model('VoiceTemplate', voiceTemplateSchema);
 const VoiceParent = mongoose.model('VoiceParent', voiceParentSchema);
 const VoiceUser = mongoose.model('VoiceUser', voiceUserSchema);
 const FacePreset = mongoose.model('FacePreset', facePresetSchema);
 const GuildConfig = mongoose.model('GuildConfig', guildConfigSchema);
+const Conversation = mongoose.model('Conversation', conversationSchema);
 
-module.exports = { VoiceTemplate, VoiceParent, VoiceUser, FacePreset, GuildConfig };
+module.exports = { VoiceTemplate, VoiceParent, VoiceUser, FacePreset, GuildConfig, Conversation };
