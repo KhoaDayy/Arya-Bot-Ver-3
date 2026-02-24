@@ -1,4 +1,4 @@
-# 🪷 Khóa's Arya Bot Ver 3
+# 🪷 Arya Bot Ver 3
 
 <div align="center">
   <img src="https://img.shields.io/badge/Node.js-18.x-green" alt="Node Version">
