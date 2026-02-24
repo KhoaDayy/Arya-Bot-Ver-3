@@ -2,7 +2,9 @@ const {
     ContextMenuCommandBuilder,
     ApplicationCommandType,
     EmbedBuilder,
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    ChannelType,        // v14: dùng thay vì magic number 15
+    MessageFlags,
 } = require("discord.js");
 const axios = require("axios");
 const { Jimp } = require("jimp");
@@ -15,7 +17,7 @@ module.exports = {
         .setType(ApplicationCommandType.Message),
 
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         try {
             const message = interaction.targetMessage;
@@ -62,21 +64,23 @@ module.exports = {
             faceCode = faceCode.trim();
 
             // 4. Database Cache
-            let presetData = await FacePreset.findOne({ id: faceCode });
+            let presetData = await FacePreset.findOne({ id: faceCode }).lean();
             let data;
 
             if (presetData) {
                 data = presetData.data;
             } else {
-                const response = await axios.get(`http://localhost:3001/convert`, {
-                    params: { id: faceCode }
+                const response = await axios.get(`${process.env.WWM_LOCAL_API}/convert`, {
+                    params: { id: faceCode },
+                    timeout: 10_000,  // 10s timeout
                 });
                 data = response.data;
 
                 if (!data || !data.view_data) {
                     return interaction.editReply({ content: `❌ Không tìm thấy thông tin cho mã: **${faceCode}**` });
                 }
-                presetData = await FacePreset.create({ id: faceCode, data: data });
+                // Dùng create() với try-catch bên ngoài đã bao phủ
+                presetData = await FacePreset.create({ id: faceCode, data });
             }
 
             // 5. Phân tích dữ liệu
@@ -120,17 +124,21 @@ module.exports = {
 
             // 7. Auto-Archive Forum
             try {
-                const config = await GuildConfig.findOne({ guildId: interaction.guildId });
-                if (config && config.faceForumId) {
-                    const fresh = await FacePreset.findOne({ id: faceCode });
-                    if (!fresh.postedChannels.includes(config.faceForumId)) {
+                const config = await GuildConfig.findOne({ guildId: interaction.guildId }).lean();
+                if (config?.faceForumId) {
+                    // ✅ FIX: Dùng presetData đã có từ trước, không query DB lần 2
+                    if (!presetData.postedChannels?.includes(config.faceForumId)) {
                         const forum = await interaction.client.channels.fetch(config.faceForumId).catch(() => null);
-                        if (forum && forum.type === 15) {
+                        // ✅ FIX: ChannelType.GuildForum thay vì magic number 15
+                        if (forum?.type === ChannelType.GuildForum) {
                             await forum.threads.create({
                                 name: (data.name || 'Preset').substring(0, 100),
-                                message: { embeds: [embedInfo, embedCode] }
+                                message: { embeds: [embedInfo, embedCode] },
                             });
-                            await FacePreset.updateOne({ _id: fresh._id }, { $addToSet: { postedChannels: config.faceForumId } });
+                            await FacePreset.updateOne(
+                                { _id: presetData._id },
+                                { $addToSet: { postedChannels: config.faceForumId } }
+                            );
                         }
                     }
                 }

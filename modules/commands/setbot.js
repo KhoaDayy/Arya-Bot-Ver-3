@@ -1,8 +1,8 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const axios = require('axios');
-require('dotenv/config');
+const { requireOwner } = require('../../utils/guards');
 
-const OWNER_ID = process.env.OWNER_ID; // ID chủ bot trong .env
+const VALID_BOT_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']);
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -22,40 +22,36 @@ module.exports = {
         .addAttachmentOption(option =>
             option
                 .setName('image')
-                .setDescription('Tải lên tệp ảnh (PNG/JPEG/GIF)')
+                .setDescription('Tải lên tệp ảnh (PNG/JPEG/GIF/WEBP)')
                 .setRequired(true)
         ),
     category: '🔧 Quản trị (Admin)',
     devOnly: true,
 
     async execute(interaction) {
-        // 1. Kiểm tra quyền
-        if (interaction.user.id !== OWNER_ID) {
-            return interaction.reply({
-                content: '❌ Chỉ chủ bot mới có thể sử dụng lệnh này.',
-                ephemeral: true
-            });
-        }
+        // Dùng guard tập trung
+        if (await requireOwner(interaction)) return;
 
-        const type = interaction.options.getString('type');         // 'avatar' hoặc 'banner'
         const attachment = interaction.options.getAttachment('image');
 
-        // 2. Kiểm tra có tệp và đúng định dạng ảnh
-        if (!attachment || !attachment.contentType.startsWith('image/')) {
+        // Kiểm tra định dạng ảnh (Set.has O(1) thay vì startsWith để chính xác hơn)
+        if (!attachment || !VALID_BOT_IMAGE_TYPES.has(attachment.contentType?.split(';')[0])) {
             return interaction.reply({
-                content: '❌ Vui lòng đính kèm tệp ảnh hợp lệ (PNG, JPEG hoặc GIF).',
-                ephemeral: true
+                content: '❌ Vui lòng đính kèm tệp ảnh hợp lệ (PNG, JPEG, GIF hoặc WEBP).',
+                flags: MessageFlags.Ephemeral,
             });
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        const type = interaction.options.getString('type');
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         try {
-            // 3. Fetch buffer từ URL
-            const response = await axios.get(attachment.url, { responseType: 'arraybuffer' });
-            const buffer = Buffer.from(response.data, 'binary');
+            const response = await axios.get(attachment.url, {
+                responseType: 'arraybuffer',
+                timeout: 10_000,
+            });
+            const buffer = Buffer.from(response.data);
 
-            // 4. Áp dụng thay đổi theo loại
             if (type === 'avatar') {
                 await interaction.client.user.setAvatar(buffer);
                 await interaction.editReply('✅ Đã cập nhật **avatar** của bot thành công!');
@@ -64,11 +60,8 @@ module.exports = {
                 await interaction.editReply('✅ Đã cập nhật **banner** của bot thành công!');
             }
         } catch (error) {
-            console.error(`Error setting bot ${type}:`, error);
-            await interaction.editReply({
-                content: `❌ Có lỗi khi cập nhật ${type}.`,
-                ephemeral: true
-            });
+            console.error(`[setbot] Error setting ${type}:`, error.message);
+            await interaction.editReply(`❌ Có lỗi khi cập nhật ${type}. Hãy thử lại sau.`);
         }
     }
 };

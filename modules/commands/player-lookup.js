@@ -4,17 +4,17 @@ const moment = require("moment-timezone");
 
 // Màu và emoji theo Sect
 const SECT_INFO = {
-    "Silver Needle": { emoji: "🪡", color: "#C0C0C0" },
-    "Tangmen": { emoji: "🗡️", color: "#8B4513" },
-    "Shaolin": { emoji: "🙏", color: "#DAA520" },
-    "Wudang": { emoji: "☯️", color: "#4169E1" },
-    "Emei": { emoji: "🌸", color: "#FF69B4" },
-    "Beggar": { emoji: "🍶", color: "#8B7355" },
-    "Scholar": { emoji: "📜", color: "#87CEEB" },
-    "Flower": { emoji: "🌺", color: "#FF1493" },
-    "Five Immortals": { emoji: "🐍", color: "#9932CC" },
-    "Wudu": { emoji: "☠️", color: "#7B68EE" },
-    "Free": { emoji: "⚔️", color: "#708090" },
+    "Silver Needle": { emoji: "", color: "#C0C0C0" },
+    "Tangmen": { emoji: "", color: "#8B4513" },
+    "Shaolin": { emoji: "", color: "#DAA520" },
+    "The Masked Troupe": { emoji: "", color: "#4169E1" },
+    "Emei": { emoji: "", color: "#FF69B4" },
+    "Beggar": { emoji: "", color: "#8B7355" },
+    "Scholar": { emoji: "", color: "#87CEEB" },
+    "Flower": { emoji: "", color: "#FF1493" },
+    "Five Immortals": { emoji: "", color: "#9932CC" },
+    "Wudu": { emoji: "", color: "#7B68EE" },
+    "Free": { emoji: "", color: "#708090" },
 };
 
 // Tạo thanh tiến trình
@@ -59,35 +59,25 @@ function getAccountAge(createTime) {
 
 // Trạng thái online/offline
 function getOnlineStatus(loginTime, logoutTime) {
-    if (!loginTime || !logoutTime) return { text: "❓ Không rõ", isOnline: false };
+    if (!loginTime || !logoutTime) return { text: "Không rõ", isOnline: false };
     // Nếu login > logout → đang online
     if (loginTime > logoutTime) {
-        return { text: "🟢 Đang Online", isOnline: true };
+        return { text: "Đang Online", isOnline: true };
     }
     // Offline → tính last seen
     const lastSeen = moment.unix(logoutTime).tz("Asia/Ho_Chi_Minh");
     const diff = moment().diff(lastSeen, "minutes");
-    if (diff < 60) return { text: `🔴 Offline · ${diff} phút trước`, isOnline: false };
-    if (diff < 1440) return { text: `🔴 Offline · ${Math.floor(diff / 60)} giờ trước`, isOnline: false };
-    return { text: `🔴 Offline · ${lastSeen.format("DD/MM HH:mm")}`, isOnline: false };
+    if (diff < 60) return { text: `Offline · ${diff} phút trước`, isOnline: false };
+    if (diff < 1440) return { text: `Offline · ${Math.floor(diff / 60)} giờ trước`, isOnline: false };
+    return { text: `Offline · ${lastSeen.format("DD/MM HH:mm")}`, isOnline: false };
 }
 
 // Xử lý body type
 function getBodyType(type) {
-    const types = { 1: "Nam 🧑", 2: "Nữ 👩", 3: "Loli 👧", 4: "Shota 🧒" };
+    const types = { 1: "Nam", 0: "Nữ" };
     return types[type] || "Không rõ";
 }
 
-// Solo rank badge
-function getSoloRank(level) {
-    if (level >= 20) return "🏆 Grandmaster";
-    if (level >= 15) return "💎 Diamond";
-    if (level >= 12) return "🥇 Platinum";
-    if (level >= 9) return "🥈 Gold";
-    if (level >= 6) return "🥉 Silver";
-    if (level >= 3) return "⚪ Bronze";
-    return "🔰 Unranked";
-}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -104,13 +94,28 @@ module.exports = {
 
         try {
             const keyword = interaction.options.getString("keyword").trim();
-            const response = await axios.get(`http://localhost:3003/lookup`, {
-                params: { keyword: keyword }
-            });
+            let response;
+            try {
+                response = await axios.get(`${process.env.WWM_LOCAL_API}/id`, {
+                    params: { keyword: keyword },
+                    timeout: 10000 // 10s timeout
+                });
+            } catch (err) {
+                if (err.code === 'ECONNREFUSED') {
+                    await interaction.deleteReply().catch(() => { });
+                    return interaction.followUp({ content: `Lỗi: Service tra cứu (Local API) chưa bật.`, ephemeral: true });
+                }
+                throw err;
+            }
 
             const data = response.data;
-            if (!data || !data.nickname) {
-                return interaction.editReply({ content: `❌ Không tìm thấy người chơi: **${keyword}**` });
+
+            // Xử lý trường hợp không tìm thấy hoặc lỗi
+            if (!data || !data.nickname || (data.code !== undefined && data.code !== 0)) {
+                await interaction.deleteReply().catch(() => { });
+                // Ưu tiên hiển thị msg từ API nếu có
+                const errorMsg = data && data.msg ? `Lỗi: ${data.msg}` : `Không tìm thấy người chơi: **${keyword}**`;
+                return interaction.followUp({ content: errorMsg, ephemeral: true });
             }
 
             // === Tính toán dữ liệu ===
@@ -123,19 +128,21 @@ module.exports = {
             const accountAge = data.create_time ? getAccountAge(data.create_time) : "N/A";
             const status = getOnlineStatus(data.login_time, data.logout_time);
             const body = getBodyType(data.body_type);
-            const soloRank = getSoloRank(data.solo_max_level);
 
             // Level bar (max 100)
             const levelBar = createBar(data.level || 0, 100, 12);
             const levelPercent = data.level || 0;
 
             // === Build Embed ===
+            const displayName = (data.ly_stage_name && data.ly_stage_name !== "")
+                ? `${data.nickname} (${data.ly_stage_name})`
+                : data.nickname;
+
             const embed = new EmbedBuilder()
                 .setAuthor({
                     name: `${status.text}`,
-                    iconURL: data.shot_img || undefined
                 })
-                .setTitle(`${sectInfo.emoji} ${data.nickname}`)
+                .setTitle(displayName)
                 .setColor(status.isOnline ? "#57F287" : sectInfo.color);
 
             // Description
@@ -148,57 +155,37 @@ module.exports = {
 
             // Fields
             embed.addFields(
-                {
-                    name: "📊 Level",
-                    value: `**Lv.${levelPercent}** ${levelBar}`,
-                    inline: false
-                },
-                {
-                    name: `${sectInfo.emoji} Môn Phái`,
-                    value: `\`${data.school_name || "Vô Môn"}\``,
-                    inline: true
-                },
-                {
-                    name: "🧬 Giới tính",
-                    value: `\`${body}\``,
-                    inline: true
-                },
-                {
-                    name: "💪 Build Power",
-                    value: `\`${buildPower}\``,
-                    inline: true
-                },
-                {
-                    name: "⚔️ Solo Arena",
-                    value: `${soloRank}\nĐỉnh cao: **Lv.${data.solo_max_level || 0}** · Hiện tại: **Lv.${data.solo_level || 0}**`,
-                    inline: false
-                },
-                {
-                    name: "⏱️ Thời gian Online",
-                    value: `\`${onlineTime}\``,
-                    inline: true
-                },
-                {
-                    name: "📅 Ngày tạo",
-                    value: `\`${createdDate}\`\n(${accountAge})`,
-                    inline: true
-                },
-                {
-                    name: "🏥 Tình trạng",
-                    value: data.has_disease ? "🤒 Đang bị bệnh" : "💚 Khỏe mạnh",
-                    inline: true
-                }
+                { name: "Level", value: `**Lv.${levelPercent}** ${levelBar}`, inline: false },
+                { name: `Môn Phái`, value: `\`${data.school_name || "Vô Môn"}\``, inline: true },
+                { name: "Giới tính", value: `\`${body}\``, inline: true },
+                { name: "Build Power", value: `\`${buildPower}\``, inline: true },
+                { name: "Điểm Thời Trang", value: `\`${data.fashion_score ? new Intl.NumberFormat().format(data.fashion_score) : "0"}\``, inline: false },
+                { name: "Thời gian Online", value: `\`${onlineTime}\``, inline: true },
+                { name: "Ngày tạo", value: `\`${createdDate}\`\n(${accountAge})`, inline: true },
+                { name: "Tình trạng", value: data.has_disease ? "Đang bị bệnh" : "Khỏe mạnh", inline: true }
             );
 
+            // Sinh nhật từ data._redis_player (hoặc được map sẵn)
+            if (data.birthday_month && data.birthday_day) {
+                embed.addFields({ name: "Sinh nhật", value: `\`${data.birthday_day}/${data.birthday_month}\``, inline: true });
+            }
+
+            // Bang hội từ data._redis_player
+            if (data._redis_player?.club) {
+                const club = data._redis_player.club;
+                const clubName = club.club_name || "Không rõ";
+                embed.addFields({ name: "Bang Hội", value: `\`${clubName}\``, inline: true });
+            }
+
             // Social mode
-            const socialModes = { 1: "🌍 Giao Lưu", 2: "😊 Bình Thường", 3: "🚫 Ẩn Danh" };
+            const socialModes = { 1: "Giao Lưu", 2: "Bình Thường", 3: "Ẩn Danh" };
             const socialText = socialModes[data.social_mode] || "Không rõ";
 
             // Master status
-            const masterText = data.is_master ? "🎓 Sư Phụ" : "";
+            const masterText = data.is_master ? `Sư Phụ (${data.students_count || 0} đệ tử)` : "";
             const extraInfo = [socialText, masterText].filter(Boolean).join(" · ");
             if (extraInfo) {
-                embed.addFields({ name: "💬 Xã hội", value: extraInfo, inline: false });
+                embed.addFields({ name: "Xã hội", value: extraInfo, inline: false });
             }
 
             // Footer & Image
@@ -207,8 +194,8 @@ module.exports = {
             });
             embed.setTimestamp();
 
-            if (data.shot_img) {
-                embed.setImage(data.shot_img);
+            if (data.cover_img) {
+                embed.setImage(data.cover_img);
             }
 
             await interaction.editReply({ embeds: [embed] });
@@ -216,9 +203,10 @@ module.exports = {
         } catch (error) {
             console.error("[Player-Lookup Error]:", error);
             const errMsg = error.response?.status === 404
-                ? `❌ Không tìm thấy người chơi: **${interaction.options.getString("keyword")}**`
-                : "❌ Đã xảy ra lỗi khi tra cứu. Server có thể đang bảo trì.";
-            await interaction.editReply({ content: errMsg }).catch(() => null);
+                ? `Không tìm thấy người chơi: **${interaction.options.getString("keyword")}**`
+                : "Đã xảy ra lỗi khi tra cứu. Server có thể đang bảo trì.";
+            await interaction.deleteReply().catch(() => { });
+            await interaction.followUp({ content: errMsg, ephemeral: true }).catch(() => null);
         }
     },
 };

@@ -23,10 +23,12 @@ module.exports = {
         try {
             let inputCode = interaction.options.getString("code");
             const imageAttachment = interaction.options.getAttachment("qr");
+            console.log(`[Face-Converter] Request by ${interaction.user.tag} | Code: ${inputCode} | HasImage: ${!!imageAttachment}`);
             let finalId = null;
 
             if (!inputCode && !imageAttachment) {
-                return interaction.editReply({ content: "❌ Bạn cần cung cấp mã preset hoặc tải lên ảnh QR Code." });
+                await interaction.deleteReply().catch(() => { });
+                return interaction.followUp({ content: "❌ Bạn cần cung cấp mã preset hoặc tải lên ảnh QR Code.", ephemeral: true });
             }
 
             // 1. Giải mã QR Code cục bộ
@@ -45,13 +47,19 @@ module.exports = {
 
                     if (decodedData) {
                         finalId = decodedData;
+                        console.log(`[Face-Converter] QR Decoded ID: ${decodedData}`);
                     } else if (!inputCode) {
-                        return interaction.editReply({
-                            content: `❌ Bot không thể nhận diện mã QR trong ảnh này.\n💡 **Mẹo:** Hãy đảm bảo ảnh rõ nét và không bị cắt mất phần góc mã QR.`
+                        await interaction.deleteReply().catch(() => { });
+                        return interaction.followUp({
+                            content: `❌ Bot không thể nhận diện mã QR trong ảnh này.\n💡 **Mẹo:** Hãy đảm bảo ảnh rõ nét và không bị cắt mất phần góc mã QR.`,
+                            ephemeral: true
                         });
                     }
                 } catch (qrErr) {
-                    if (!inputCode) return interaction.editReply({ content: "❌ Đã xảy ra lỗi khi xử lý ảnh QR." });
+                    if (!inputCode) {
+                        await interaction.deleteReply().catch(() => { });
+                        return interaction.followUp({ content: "❌ Đã xảy ra lỗi khi xử lý ảnh QR.", ephemeral: true });
+                    }
                 }
             }
 
@@ -63,21 +71,33 @@ module.exports = {
                 if (parts.length > 1) finalId = parts[1].split("&")[0];
             }
             finalId = finalId.trim();
+            console.log(`[Face-Converter] Final Target ID: ${finalId}`);
 
             // 2. Database Cache
-            let presetData = await FacePreset.findOne({ id: finalId });
+            let presetData = await FacePreset.findOne({ id: finalId }).lean();
             let data;
 
             if (presetData) {
+                console.log(`[Face-Converter] Cache HIT for ${finalId}`);
                 data = presetData.data;
             } else {
-                const response = await axios.get(`http://localhost:3001/convert`, {
+                console.log(`[Face-Converter] Cache MISS for ${finalId}. Fetching API...`);
+                const response = await axios.get(`${process.env.WWM_LOCAL_API}/convert`, {
                     params: { id: finalId }
                 });
-                data = response.data;
+                const responseBody = response.data;
+                console.log(`[Face-Converter] API Response Status: ${response.status}`);
+
+                // Handle wrapped response from local API
+                if (responseBody && responseBody.origin) {
+                    data = responseBody.origin;
+                } else {
+                    data = responseBody;
+                }
 
                 if (!data || !data.view_data) {
-                    return interaction.editReply({ content: `❌ Không tìm thấy thông tin cho mã: **${finalId}**` });
+                    await interaction.deleteReply().catch(() => { });
+                    return interaction.followUp({ content: `❌ Không tìm thấy thông tin cho mã: **${finalId}**`, ephemeral: true });
                 }
                 presetData = await FacePreset.create({ id: finalId, data: data });
             }
@@ -87,11 +107,15 @@ module.exports = {
             try {
                 viewData = typeof data.view_data === 'string' ? JSON.parse(data.view_data) : data.view_data;
             } catch (e) {
-                return interaction.editReply({ content: "❌ Lỗi định dạng dữ liệu từ game." });
+                await interaction.deleteReply().catch(() => { });
+                return interaction.followUp({ content: "❌ Lỗi định dạng dữ liệu từ game.", ephemeral: true });
             }
 
             const faceData = viewData.face_data;
-            if (!faceData) return interaction.editReply({ content: "❌ Mã này không chứa dữ liệu khuôn mặt." });
+            if (!faceData) {
+                await interaction.deleteReply().catch(() => { });
+                return interaction.followUp({ content: "❌ Mã này không chứa dữ liệu khuôn mặt.", ephemeral: true });
+            }
 
             const formatNumber = (num) => {
                 if (!num) return '0';
@@ -114,18 +138,26 @@ module.exports = {
                 .setFooter({ text: `Plan ID: ${data.plan_id || finalId}`, iconURL: interaction.client.user.displayAvatarURL() });
 
             if (data.picture_url) embedInfo.setImage(data.picture_url);
+            // Gộp face_data thuần + skeleton/makeup JSON vào 1 chuỗi (format game import)
+            const extraData = {};
+            if (viewData.face_skeleton_data) extraData.face_skeleton_data = viewData.face_skeleton_data;
+            if (viewData.face_makeup_data) extraData.face_makeup_data = viewData.face_makeup_data;
+
+            const extraStr = Object.keys(extraData).length > 0 ? " " + JSON.stringify(extraData) : "";
+            const fullPresetStr = faceData + extraStr;
 
             const embedCode = new EmbedBuilder()
                 .setColor("#1a1a1a")
-                .setDescription(`\`\`\`${faceData.length > 4000 ? faceData.substring(0, 4000) + "..." : faceData}\`\`\``);
+                .setTitle("📋 Preset Data")
+                .setDescription(`\`\`\`${fullPresetStr.length > 4000 ? fullPresetStr.substring(0, 4000) + "..." : fullPresetStr}\`\`\``);
 
             await interaction.editReply({ embeds: [embedInfo, embedCode] });
 
             // 5. Auto-Archive Forum
             try {
-                const config = await GuildConfig.findOne({ guildId: interaction.guildId });
+                const config = await GuildConfig.findOne({ guildId: interaction.guildId }).lean();
                 if (config && config.faceForumId) {
-                    const fresh = await FacePreset.findOne({ id: finalId });
+                    const fresh = await FacePreset.findOne({ id: finalId }).lean();
                     if (!fresh.postedChannels.includes(config.faceForumId)) {
                         const forum = await interaction.client.channels.fetch(config.faceForumId).catch(() => null);
                         if (forum && forum.type === 15) {
@@ -142,7 +174,8 @@ module.exports = {
 
         } catch (error) {
             console.error("[Face-Converter Error]:", error);
-            await interaction.editReply({ content: "❌ Đã xảy ra lỗi hệ thống khi xử lý. Thử lại sau nhé." }).catch(() => null);
+            await interaction.deleteReply().catch(() => { });
+            await interaction.followUp({ content: "❌ Đã xảy ra lỗi hệ thống khi xử lý. Thử lại sau nhé.", ephemeral: true }).catch(() => null);
         }
     },
 };

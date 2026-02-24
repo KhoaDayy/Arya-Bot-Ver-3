@@ -4,8 +4,12 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
+    MessageFlags,
 } = require("discord.js");
 const axios = require("axios");
+
+// Regex validate URL đơn giản — tránh nhận input rác
+const URL_REGEX = /^https?:\/\/.+/i;
 
 // Hàm lầy thông tin chi tiết từ AniList
 async function fetchAniListInfo(id) {
@@ -85,6 +89,7 @@ module.exports = {
                 )
         ),
     category: "🎬 Media",
+    cooldown: 5,
 
     async execute(interaction) {
         await interaction.deferReply();
@@ -95,68 +100,59 @@ module.exports = {
                 ? interaction.options.getString("url")
                 : interaction.options.getAttachment("file").url;
 
+        // Validate URL cơ bản (chỉ cần thiết với link, attachment URL từ Discord đã tin tưởng)
+        if (sub === "link" && !URL_REGEX.test(imageUrl)) {
+            return interaction.editReply({
+                content: "❌ URL không hợp lệ. Vui lòng cung cấp link ảnh bắt đầu bằng `http://` hoặc `https://`.",
+            });
+        }
+
         try {
             const { data } = await axios.get(
-                `https://api.trace.moe/search?url=${encodeURIComponent(imageUrl)}`
+                `https://api.trace.moe/search?url=${encodeURIComponent(imageUrl)}`,
+                { timeout: 15_000 } // timeout 15s
             );
 
             if (!data.result || data.result.length === 0) {
-                return interaction.editReply("❌ Không tìm thấy kết quả nào khớp với ảnh này.");
+                await interaction.deleteReply().catch(() => { });
+                return interaction.followUp({
+                    content: "❌ Không tìm thấy kết quả nào khớp với ảnh này.",
+                    flags: MessageFlags.Ephemeral,
+                });
             }
 
-            // Lấy top 5 kết quả đầu tiên để đảm bảo hiệu suất và độ chính xác
+            // Lấy top 5 kết quả
             const results = data.result.slice(0, 5);
-            const embeds = [];
 
-            for (let i = 0; i < results.length; i++) {
-                const item = results[i];
-                const aniInfo = await fetchAniListInfo(item.anilist);
+            // ✅ FIX: Gọi AniList song song thay vì tuần tự (giảm từ ~1.5s → ~300ms)
+            const aniInfos = await Promise.allSettled(
+                results.map(item => fetchAniListInfo(item.anilist))
+            );
+
+            const embeds = results.map((item, i) => {
+                const aniInfo = aniInfos[i].status === 'fulfilled' ? aniInfos[i].value : null;
 
                 const title = aniInfo?.title?.english || aniInfo?.title?.romaji || item.filename;
                 const nativeTitle = aniInfo?.title?.native || "N/A";
                 const score = aniInfo?.averageScore ? `${aniInfo.averageScore}/100` : "N/A";
                 const color = aniInfo?.coverImage?.color || "#1abc9c";
 
-                const embed = new EmbedBuilder()
+                return new EmbedBuilder()
                     .setColor(color)
                     .setTitle(`🎬 ${title}`)
                     .setURL(`https://anilist.co/anime/${item.anilist}`)
                     .setDescription(`*${nativeTitle}*`)
                     .setImage(item.image)
                     .addFields(
-                        {
-                            name: "📊 Độ chính xác",
-                            value: createProgressBar(item.similarity),
-                            inline: false,
-                        },
-                        {
-                            name: "🎞️ Tập số",
-                            value: `${item.episode || "Movie/Special"}`,
-                            inline: true,
-                        },
-                        {
-                            name: "⏳ Thời điểm",
-                            value: `\`${formatTime(item.from)}\` → \`${formatTime(item.to)}\``,
-                            inline: true,
-                        },
-                        {
-                            name: "⭐ Đánh giá",
-                            value: `\`${score}\``,
-                            inline: true,
-                        },
-                        {
-                            name: "🏷️ Thể loại",
-                            value: `\`${aniInfo?.genres?.slice(0, 3).join(", ") || "N/A"}\``,
-                            inline: false,
-                        }
+                        { name: "📊 Độ chính xác", value: createProgressBar(item.similarity), inline: false },
+                        { name: "🎞️ Tập số", value: `${item.episode || "Movie/Special"}`, inline: true },
+                        { name: "⏳ Thời điểm", value: `\`${formatTime(item.from)}\` → \`${formatTime(item.to)}\``, inline: true },
+                        { name: "⭐ Đánh giá", value: `\`${score}\``, inline: true },
+                        { name: "🏷️ Thể loại", value: `\`${aniInfo?.genres?.slice(0, 3).join(", ") || "N/A"}\``, inline: false }
                     )
-                    .setFooter({
-                        text: `Kết quả ${i + 1}/${results.length} • trace.moe`,
-                    })
+                    .setFooter({ text: `Kết quả ${i + 1}/${results.length} • trace.moe` })
                     .setTimestamp();
-
-                embeds.push(embed);
-            }
+            });
 
             let page = 0;
             const getRow = (p) => {
@@ -203,8 +199,12 @@ module.exports = {
             });
 
         } catch (error) {
-            console.error("Search Error:", error);
-            return interaction.editReply("❌ Đã có lỗi xảy ra trong quá trình tìm kiếm. Vui lòng thử lại sau.");
+            console.error("[ani-search] Error:", error.message);
+            await interaction.deleteReply().catch(() => { });
+            return interaction.followUp({
+                content: "❌ Đã có lỗi xảy ra trong quá trình tìm kiếm. Vui lòng thử lại sau.",
+                flags: MessageFlags.Ephemeral,
+            });
         }
     },
 };

@@ -1,4 +1,9 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  MessageFlags,
+  // Components v2
+  ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize
+} = require("discord.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -11,6 +16,7 @@ module.exports = {
         .setRequired(false)
         .setAutocomplete(true)
     ),
+  cooldown: 3,
   category: "📝 Thông tin (Info)",
 
   // Xử lý autocomplete cho option 'command'
@@ -41,21 +47,21 @@ module.exports = {
       if (!cmd || (cmd.devOnly && !isOwner)) {
         return interaction.reply({
           content: `❌ Không tìm thấy lệnh \`${name}\`.`,
-          ephemeral: true
+          flags: MessageFlags.Ephemeral,
         });
       }
 
       const { data } = cmd;
-      const embed = new EmbedBuilder()
-        .setTitle(`ℹ️ Chi tiết lệnh /${data.name}`)
-        .setDescription(data.description || "Không có mô tả.")
-        .setColor(0x1ABC9C);
+      const container = new ContainerBuilder();
+
+      let content = `## ℹ️ Chi tiết lệnh /${data.name}\n${data.description || "Không có mô tả."}\n`;
 
       // Subcommands
       const subcommands = data.options?.filter(o => o.type === 1);
       if (subcommands?.length) {
-        const subs = subcommands.map(o => `\`/${data.name} ${o.name}\` — ${o.description}`);
-        embed.addFields({ name: "📂 Subcommands", value: subs.join("\n"), inline: false });
+        content += `\n### 📂 Subcommands\n`;
+        const subs = subcommands.map(o => `\u2022 \`/${data.name} ${o.name}\` — ${o.description}`);
+        content += subs.join("\n") + `\n`;
       }
 
       // Options
@@ -64,20 +70,22 @@ module.exports = {
         if (o.type === 1) {
           for (const so of o.options || []) {
             options.push(
-              `\`/${data.name} ${o.name} ${so.name}\` — ${so.description} (${so.required ? "bắt buộc" : "tùy chọn"})`
+              `\u2022 \`/${data.name} ${o.name} ${so.name}\` — ${so.description} (${so.required ? "bắt buộc" : "tùy chọn"})`
             );
           }
         } else {
           options.push(
-            `\`/${data.name} ${o.name}\` — ${o.description} (${o.required ? "bắt buộc" : "tùy chọn"})`
+            `\u2022 \`/${data.name} ${o.name}\` — ${o.description} (${o.required ? "bắt buộc" : "tùy chọn"})`
           );
         }
       }
       if (options.length) {
-        embed.addFields({ name: "🔧 Options", value: options.join("\n"), inline: false });
+        content += `\n### 🔧 Options\n${options.join("\n")}`;
       }
 
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+
+      return interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
     }
 
     // List tổng quát khi không có tên lệnh
@@ -87,23 +95,29 @@ module.exports = {
 
       const category = cmd.category || "❓Khác";
       if (!sections[category]) sections[category] = [];
-      sections[category].push(`\`/${cmd.data.name}\` — ${cmd.data.description}`);
+      sections[category].push(`\u2022 \`/${cmd.data.name}\` — ${cmd.data.description}`);
     }
 
-    const helpEmbed = new EmbedBuilder()
-      .setTitle("📜 Danh sách lệnh")
-      .setDescription("Các lệnh được phân theo nhóm bên dưới. Dùng `/help [lệnh]` để xem chi tiết.")
-      .setColor(0x1ABC9C)
-      .setThumbnail(interaction.client.user.displayAvatarURL({ size: 128 }))
-      .setAuthor({ name: interaction.client.user.username, iconURL: interaction.client.user.displayAvatarURL({ size: 128 }) })
-      .setFooter({ text: `Yêu cầu bởi ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL({ dynamic: true }) })
-      .setTimestamp();
+    const container = new ContainerBuilder()
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `## 📜 Danh sách lệnh\nCác lệnh được phân theo nhóm bên dưới. Dùng \`/help [lệnh]\` để xem chi tiết.`
+        )
+      )
+      .addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
 
     // Thêm các category
-    for (const [group, list] of Object.entries(sections)) {
-      helpEmbed.addFields({ name: group, value: list.join("\n"), inline: false });
+    const entries = Object.entries(sections);
+    for (let i = 0; i < entries.length; i++) {
+      const [group, list] = entries[i];
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`### ${group}\n${list.join("\n")}`)
+      );
+      if (i < entries.length - 1) {
+        container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
+      }
     }
 
-    await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+    await interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
   }
 };

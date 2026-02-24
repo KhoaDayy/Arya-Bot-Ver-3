@@ -1,13 +1,12 @@
 require("dotenv/config");
 const fs = require("fs");
 const path = require("path");
-const { Client, Collection, GatewayIntentBits } = require("discord.js");
+const { Client, Collection, GatewayIntentBits, Events } = require("discord.js");
 const deployCommands = require("./utils/deployCommands");
-const { fancyLog, initSpamControl } = require("./utils/consoleLogger");
+const { fancyLog, initSpamControl, sysLog, printBanner, printLoadTable, printDeploy } = require("./utils/consoleLogger");
 const { connectDB } = require("./db/connect");
 
-const IGNORE_KEYWORDS = ["bot", "spam"];
-const IGNORED_CHANNEL = process.env.IGNORED_CHANNEL_ID;
+const MODE = process.env.MODE || 'dev';
 
 const client = new Client({
   intents: [
@@ -16,7 +15,7 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildPresences
+    GatewayIntentBits.GuildPresences,
   ],
 });
 
@@ -43,50 +42,44 @@ function load(dir, collection) {
 
 const cmdNames = load("modules/commands", client.commands);
 const ctxNames = load("modules/contexts", client.contexts);
+
 const evDir = path.join(__dirname, "modules/events");
 if (fs.existsSync(evDir)) {
-  for (const file of fs.readdirSync(evDir).filter((f) => f.endsWith(".js"))) {
+  for (const file of fs.readdirSync(evDir).filter(f => f.endsWith(".js"))) {
     const ev = require(path.join(evDir, file));
-    if (ev.once) client.once(ev.name, (...a) => ev.execute(...a, client));
-    else client.on(ev.name, (...a) => ev.execute(...a, client));
+    // v14: dùng Events enum thay string thô — Events.ClientReady, Events.MessageCreate, v.v.
+    // Event name vẫn là string từ module nên giữ logic cũ, chỉ fix ready → clientReady
+    const evName = ev.name === 'ready' ? Events.ClientReady : ev.name;
+    if (ev.once) client.once(evName, (...a) => ev.execute(...a, client));
+    else client.on(evName, (...a) => ev.execute(...a, client));
     events.push(ev.name);
   }
 }
 
-console.log(`📦 Loaded Commands (${cmdNames.length}): ${cmdNames.join(", ")}`);
-console.log(
-  `📂 Loaded Context Menus (${ctxNames.length}): ${ctxNames.join(", ")}`
-);
-console.log(`⚙️ Registered Events (${events.length}): ${events.join(", ")}`);
+// ── In bảng load đẹp ──────────────────────────────────────────────────────────
+printLoadTable({ commands: cmdNames, contexts: ctxNames, events });
 
 (async () => {
-  // Kết nối MongoDB trước khi deploy và login
-  await connectDB();
+  try {
+    // Kết nối MongoDB
+    await connectDB();
 
-  console.log("🌐 Deploying Application Commands...");
-  await deployCommands();
-  console.log(`✅ Deployed (${cmdNames.length + ctxNames.length}) commands:`);
-  console.log(`   • Commands: ${cmdNames.join(", ")}`);
-  console.log(`   • Context Menus: ${ctxNames.join(", ")}`);
+    // Deploy commands
+    await deployCommands();
+    printDeploy(MODE, cmdNames.length + ctxNames.length);
 
-  initSpamControl();
+    initSpamControl();
 
-  client.on("messageCreate", async (m) => {
-    if (
-      m.author.bot ||
-      m.channel.type === "DM" ||
-      m.channel.id === IGNORED_CHANNEL
-    )
-      return;
-    const ch = (m.channel.name || "").toLowerCase();
-    if (IGNORE_KEYWORDS.some((k) => ch.includes(k))) return;
-    await fancyLog({
-      serverName: m.guild?.name || "DM",
-      channelName: m.channel.name || "Unknown",
-      userName: m.member?.displayName || m.author.username,
-      content: m.content || "<media>",
+    // In banner sau khi login thành công (handler trong ready.js)
+    client.once(Events.ClientReady, (c) => {
+      printBanner(c.user.tag);
+      sysLog('READY', `Serving ${c.guilds.cache.size} guild(s) · ${c.users.cache.size} cached users`);
     });
-  });
 
-  client.login(process.env.TOKEN);
+    client.login(process.env.TOKEN);
+  } catch (error) {
+    sysLog('FATAL', `Startup failed: ${error.message}`, require('chalk').default.hex('#ED4245'));
+    console.error(error);
+    process.exit(1);
+  }
 })();
