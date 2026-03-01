@@ -18,6 +18,8 @@ const {
   handleWwmGroupButton,
   handleWwmModalSubmit,
 } = require('../commands/wwm-stats');
+const { handleGuildWarButton } = require('../../services/guildWarService');
+const { handleButton: handleGwRegButton, handleModalSubmit: handleGwRegModal } = require('../commands/gw-register');
 
 // Helper dùng chung để reply ephemeral → DRY, không lặp { ephemeral: true } 30+ lần
 function replyEphemeral(interaction, content) {
@@ -81,6 +83,28 @@ module.exports = {
       return;
     }
 
+    // ── Guild War: Button (Đăng ký) ───────────────────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('guiwar_btn_')) {
+      try {
+        await handleGuildWarButton(interaction);
+      } catch (e) {
+        console.error('[guild war button]', e);
+        await replyEphemeral(interaction, '❌ Đã có lỗi xảy ra, vui lòng thử lại.');
+      }
+      return;
+    }
+
+    // ── GW Register: Button (đổi vai trò / mở form) ──────────────────────────
+    if (interaction.isButton() && interaction.customId.startsWith('gwreg_')) {
+      try {
+        await handleGwRegButton(interaction);
+      } catch (e) {
+        console.error('[gw-register button]', e);
+        await replyEphemeral(interaction, '❌ Đã có lỗi xảy ra, vui lòng thử lại.');
+      }
+      return;
+    }
+
     // ── WWM: Button (nhóm stats) ───────────────────────────────────────────
     if (interaction.isButton() && interaction.customId.startsWith('wwm_grp:')) {
       try {
@@ -98,6 +122,17 @@ module.exports = {
         await handleWwmModalSubmit(interaction);
       } catch (e) {
         console.error('[wwm modal]', e);
+        await replyEphemeral(interaction, '❌ Đã có lỗi xảy ra, vui lòng thử lại.');
+      }
+      return;
+    }
+
+    // ── GW Register: Modal submit (lưu tên ingame + role) ────────────────────
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('gwreg_modal')) {
+      try {
+        await handleGwRegModal(interaction);
+      } catch (e) {
+        console.error('[gw-register modal]', e);
         await replyEphemeral(interaction, '❌ Đã có lỗi xảy ra, vui lòng thử lại.');
       }
       return;

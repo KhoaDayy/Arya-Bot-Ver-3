@@ -3,7 +3,7 @@ const axios = require("axios");
 // Headers matching the Python source
 const HEADERS = {
     'Host': 'api.revenuecat.com',
-    'Authorization': 'Bearer appl_JngFETzdodyLmCREOlwTUtXdQik', // Found in source
+    'Authorization': `Bearer ${process.env.REVENUECAT_API_KEY || ''}`,
     'Content-Type': 'application/json',
     'Accept': '*/*',
     'X-Platform': 'iOS',

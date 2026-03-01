@@ -11,6 +11,7 @@ pnpm-debug.log*
 # Build output
 dist/
 build/
+.next/
 
 # Env files
 .env
@@ -40,3 +41,6 @@ pnpm-lock.yaml
 
 # Coverage reports
 coverage/
+
+# One-time scripts
+import-*.js

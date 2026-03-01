@@ -78,6 +78,59 @@ const wwmStatsSchema = new Schema({
 
 wwmStatsSchema.index({ userId: 1, guildId: 1, weaponType: 1 }, { unique: true });
 
+// --- Guild War Schemas ---
+const guildWarConfigSchema = new Schema({
+  guildId: { type: String, required: true, unique: true },
+  channelId: { type: String }, // Kênh thả poll
+  roleT7: { type: String }, // Role cấp cho Thứ 7
+  roleCN: { type: String }, // Role cấp cho Chủ Nhật
+  pollDay: { type: Number, default: 5 }, // Thứ gửi poll (0 = CN, 1 = T2,... 5 = T6)
+  pollTime: { type: String, default: "19:00" }, // Giờ gửi poll "HH:mm"
+  timeT7: { type: String, default: "19:00" }, // Giờ Ping Thứ 7
+  timeCN: { type: String, default: "19:00" }, // Giờ Ping Chủ Nhật
+  isActive: { type: Boolean, default: true },
+  reminderOffsets: { type: [Number], default: [30, 15, 5] }, // Phút nhắc trước war
+  signupDeadline: { type: String, default: "20:00" }, // Giờ đóng đăng ký vào Chủ Nhật (HH:mm)
+  currentPollMessageId: { type: String, default: null },
+  currentPollChannelId: { type: String, default: null }, // Channel ID của poll tuần này
+  currentBannerUrl: { type: String, default: null }, // Discord CDN URL của banner sau khi upload
+  voiceCategory: { type: String, default: null }, // ID Category để tự tạo voice
+  voiceNameTemplate: { type: String, default: "Đánh Lãnh Địa Chiến" }, // Tên Voice tự tạo
+  voiceChannelT7Id: { type: String, default: null },
+  voiceChannelCNId: { type: String, default: null }
+}, { timestamps: true });
+
+const guildWarRegistrationSchema = new Schema({
+  guildId: { type: String, required: true, index: true },
+  weekId: { type: String, required: true, index: true }, // Format ISO week: "2026-W09"
+  userId: { type: String, required: true, index: true },
+  days: [{ type: String, enum: ["T7", "CN"] }], // Các ngày tham gia
+  role: { type: String }, // Vai trò có thể tự do nhập (e.g., "DPS - Cửu kiếm")
+  ingameName: { type: String }, // Tên trong game
+}, { timestamps: true });
+
+guildWarRegistrationSchema.index({ guildId: 1, weekId: 1, userId: 1 }, { unique: true });
+
+const guildWarMemberSchema = new Schema({
+  guildId: { type: String, required: true, index: true },
+  userId: { type: String, required: true, index: true },
+  ingameName: { type: String, default: "" },
+  role: { type: String, default: "" },
+  lane: { type: String, default: "" },
+}, { timestamps: true });
+
+guildWarMemberSchema.index({ guildId: 1, userId: 1 }, { unique: true });
+
+const guildWarStatsSchema = new Schema({
+  guildId: { type: String, required: true, index: true },
+  userId: { type: String, required: true, index: true },
+  totalWars: { type: Number, default: 0 },
+  consecutiveWeeks: { type: Number, default: 0 },
+  lastParticipatedWeek: { type: String, default: "" } // "2026-W09"
+}, { timestamps: true });
+
+guildWarStatsSchema.index({ guildId: 1, userId: 1 }, { unique: true });
+
 const VoiceTemplate = mongoose.model('VoiceTemplate', voiceTemplateSchema);
 const VoiceParent = mongoose.model('VoiceParent', voiceParentSchema);
 const VoiceUser = mongoose.model('VoiceUser', voiceUserSchema);
@@ -86,4 +139,12 @@ const GuildConfig = mongoose.model('GuildConfig', guildConfigSchema);
 const Conversation = mongoose.model('Conversation', conversationSchema);
 const WwmStats = mongoose.model('WwmStats', wwmStatsSchema);
 
-module.exports = { VoiceTemplate, VoiceParent, VoiceUser, FacePreset, GuildConfig, Conversation, WwmStats };
+const GuildWarConfig = mongoose.model('GuildWarConfig', guildWarConfigSchema);
+const GuildWarRegistration = mongoose.model('GuildWarRegistration', guildWarRegistrationSchema);
+const GuildWarStats = mongoose.model('GuildWarStats', guildWarStatsSchema);
+const GuildWarMember = mongoose.model('GuildWarMember', guildWarMemberSchema);
+
+module.exports = {
+  VoiceTemplate, VoiceParent, VoiceUser, FacePreset, GuildConfig, Conversation, WwmStats,
+  GuildWarConfig, GuildWarRegistration, GuildWarStats, GuildWarMember
+};

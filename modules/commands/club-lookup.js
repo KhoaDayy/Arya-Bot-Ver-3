@@ -1,37 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const axios = require("axios");
-const moment = require("moment-timezone");
-
-// Tạo thanh tiến trình
-function createBar(current, max, size = 10) {
-    const progress = Math.round((current / max) * size);
-    const empty = size - progress;
-    return "▰".repeat(progress) + "▱".repeat(empty);
-}
-
-// Tính tuổi guild
-function getAge(createTime) {
-    const created = moment.unix(createTime);
-    const now = moment();
-    const days = now.diff(created, "days");
-
-    if (days >= 365) {
-        const years = Math.floor(days / 365);
-        const remainDays = days % 365;
-        return `${years} năm ${remainDays} ngày`;
-    }
-    if (days >= 30) {
-        const months = Math.floor(days / 30);
-        const remainDays = days % 30;
-        return `${months} tháng ${remainDays} ngày`;
-    }
-    return `${days} ngày`;
-}
-
-// Format số
-function fmt(n) {
-    return n ? new Intl.NumberFormat().format(n) : "0";
-}
+const { createBar, fmt } = require('../../utils/formatters');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -58,7 +27,8 @@ module.exports = {
             // 1. Tìm guild bằng tên
             let response;
             try {
-                response = await axios.get(`http://localhost:3003/club_search`, {
+                const apiUrl = process.env.WWM_LOCAL_API || "http://localhost:3003";
+                response = await axios.get(`${apiUrl}/club_search`, {
                     params: { name: guildName, server: serverParam },
                     timeout: 30000
                 });
@@ -98,8 +68,8 @@ module.exports = {
             // 3. Build embed
             const level = guild.level || 0;
             const levelBar = createBar(level, 10, 10);
-            const createDate = guild.create_ts ? moment.unix(guild.create_ts).tz("Asia/Ho_Chi_Minh").format("DD/MM/YYYY") : "N/A";
-            const ageStr = guild.create_ts ? getAge(guild.create_ts) : "N/A";
+            const createDate = guild.create_ts ? `<t:${Math.floor(guild.create_ts)}:D>` : "N/A";
+            const ageStr = guild.create_ts ? `<t:${Math.floor(guild.create_ts)}:R>` : "N/A";
             const purpose = guild.purpose || "Chưa có tôn chỉ hoạt động.";
 
             const embed = new EmbedBuilder()
@@ -120,9 +90,9 @@ module.exports = {
                 { name: "Cấp Độ", value: `**Lv.${level}** ${levelBar}`, inline: false },
                 { name: "👥 Thành Viên", value: `\`${fmt(guild.member_num)}\``, inline: true },
                 { name: "💰 Quỹ Bang", value: `\`${fmt(guild.fund)}\``, inline: true },
-                { name: "⭐ Uy Danh", value: `\`${fmt(guild.fame)}\``, inline: true },
+                { name: "✨ Uy Danh", value: `\`${fmt(guild.fame)}\``, inline: true },
                 { name: "🔥 Liveness", value: `\`${fmt(guild.liveness)}\``, inline: true },
-                { name: "📅 Ngày Lập", value: `\`${createDate}\` (${ageStr})`, inline: true },
+                { name: "📅 Ngày Lập", value: `${createDate} (${ageStr})`, inline: true },
                 { name: "🌐 Máy Chủ", value: `\`${serverParam} · S${guild.hostnum}\``, inline: true }
             );
 

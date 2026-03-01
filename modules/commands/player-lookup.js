@@ -1,12 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const axios = require("axios");
-const moment = require("moment-timezone");
+const { createBar, getBodyType } = require('../../utils/formatters');
 
 // Màu và emoji theo Sect
 const SECT_INFO = {
     "Silver Needle": { emoji: "", color: "#C0C0C0" },
     "Tangmen": { emoji: "", color: "#8B4513" },
-    "Shaolin": { emoji: "", color: "#DAA520" },
+    "Shaolin": { emoji: "", color: "#000000" },
     "The Masked Troupe": { emoji: "", color: "#4169E1" },
     "Emei": { emoji: "", color: "#FF69B4" },
     "Beggar": { emoji: "", color: "#8B7355" },
@@ -17,12 +17,7 @@ const SECT_INFO = {
     "Free": { emoji: "", color: "#708090" },
 };
 
-// Tạo thanh tiến trình
-function createBar(current, max, size = 10) {
-    const progress = Math.round((current / max) * size);
-    const empty = size - progress;
-    return "▰".repeat(progress) + "▱".repeat(empty);
-}
+
 
 // Tính thời gian online đẹp
 function formatOnlineTime(seconds) {
@@ -37,26 +32,6 @@ function formatOnlineTime(seconds) {
 
     return parts.join(" ") || "0 phút";
 }
-
-// Tính thời gian chơi (từ ngày tạo nhân vật đến nay)
-function getAccountAge(createTime) {
-    const created = moment.unix(createTime);
-    const now = moment();
-    const days = now.diff(created, "days");
-
-    if (days >= 365) {
-        const years = Math.floor(days / 365);
-        const remainDays = days % 365;
-        return `${years} năm ${remainDays} ngày`;
-    }
-    if (days >= 30) {
-        const months = Math.floor(days / 30);
-        const remainDays = days % 30;
-        return `${months} tháng ${remainDays} ngày`;
-    }
-    return `${days} ngày`;
-}
-
 // Trạng thái online/offline
 function getOnlineStatus(loginTime, logoutTime) {
     if (!loginTime || !logoutTime) return { text: "Không rõ", isOnline: false };
@@ -64,19 +39,12 @@ function getOnlineStatus(loginTime, logoutTime) {
     if (loginTime > logoutTime) {
         return { text: "Đang Online", isOnline: true };
     }
-    // Offline → tính last seen
-    const lastSeen = moment.unix(logoutTime).tz("Asia/Ho_Chi_Minh");
-    const diff = moment().diff(lastSeen, "minutes");
-    if (diff < 60) return { text: `Offline · ${diff} phút trước`, isOnline: false };
-    if (diff < 1440) return { text: `Offline · ${Math.floor(diff / 60)} giờ trước`, isOnline: false };
-    return { text: `Offline · ${lastSeen.format("DD/MM HH:mm")}`, isOnline: false };
+    // Lỗi: Discord CẤM render markdown (bao gồm <t:xxx>) ở thẻ tên (Author / Title / Footer).
+    // Phải trả về số gốc để dưới kia kẹp vào thẻ Description mới biên dịch được!
+    return { text: "Đang Offline", logoutTime: Math.floor(logoutTime), isOnline: false };
 }
 
-// Xử lý body type
-function getBodyType(type) {
-    const types = { 1: "Nam", 0: "Nữ" };
-    return types[type] || "Không rõ";
-}
+
 
 
 module.exports = {
@@ -122,10 +90,8 @@ module.exports = {
             const sectInfo = SECT_INFO[data.school_name] || SECT_INFO["Free"];
             const buildPower = data.max_xiuwei_kungfu ? new Intl.NumberFormat().format(data.max_xiuwei_kungfu) : "0";
             const onlineTime = data.online_time ? formatOnlineTime(data.online_time) : "0 phút";
-            const createdDate = data.create_time
-                ? moment.unix(data.create_time).tz("Asia/Ho_Chi_Minh").format("DD/MM/YYYY HH:mm")
-                : "N/A";
-            const accountAge = data.create_time ? getAccountAge(data.create_time) : "N/A";
+            const createdDate = data.create_time ? `<t:${Math.floor(data.create_time)}:f>` : "N/A";
+            const accountAge = data.create_time ? `<t:${Math.floor(data.create_time)}:R>` : "N/A";
             const status = getOnlineStatus(data.login_time, data.logout_time);
             const body = getBodyType(data.body_type);
 
@@ -147,6 +113,9 @@ module.exports = {
 
             // Description
             const descParts = [];
+            if (!status.isOnline && status.logoutTime) {
+                descParts.push(`**Offline · Lần cuối:** <t:${status.logoutTime}:R>\n`);
+            }
             if (data.sign && data.sign !== "") {
                 descParts.push(`> *"${data.sign}"*`);
             }
@@ -161,7 +130,7 @@ module.exports = {
                 { name: "Build Power", value: `\`${buildPower}\``, inline: true },
                 { name: "Điểm Thời Trang", value: `\`${data.fashion_score ? new Intl.NumberFormat().format(data.fashion_score) : "0"}\``, inline: false },
                 { name: "Thời gian Online", value: `\`${onlineTime}\``, inline: true },
-                { name: "Ngày tạo", value: `\`${createdDate}\`\n(${accountAge})`, inline: true },
+                { name: "Ngày tạo", value: `${createdDate}\n(${accountAge})`, inline: true },
                 { name: "Tình trạng", value: data.has_disease ? "Đang bị bệnh" : "Khỏe mạnh", inline: true }
             );
 

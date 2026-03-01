@@ -61,9 +61,13 @@ module.exports = {
     Promise.allSettled(guildEntries.map(([gid, cfg]) => updateGuildStats(gid, cfg)))
       .then(() => sysLog('STATS', `Updated stats channels for ${guildEntries.length} guild(s)`));
 
-    // Lặp định kỳ mỗi 5 phút
+    // Lặp định kỳ mỗi 5 phút (reload config mỗi lần để nhận thay đổi)
     setInterval(() => {
-      Promise.allSettled(guildEntries.map(([gid, cfg]) => updateGuildStats(gid, cfg)));
+      const freshConfig = loadConfig();
+      const freshEntries = Object.entries(freshConfig);
+      if (freshEntries.length > 0) {
+        Promise.allSettled(freshEntries.map(([gid, cfg]) => updateGuildStats(gid, cfg)));
+      }
     }, 5 * 60_000);
   },
 };

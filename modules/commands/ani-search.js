@@ -1,10 +1,13 @@
 const {
     SlashCommandBuilder,
-    EmbedBuilder,
+    MessageFlags,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle,
-    MessageFlags,
+    ButtonStyle
 } = require("discord.js");
 const axios = require("axios");
 
@@ -129,29 +132,35 @@ module.exports = {
                 results.map(item => fetchAniListInfo(item.anilist))
             );
 
-            const embeds = results.map((item, i) => {
+            const containers = results.map((item, i) => {
                 const aniInfo = aniInfos[i].status === 'fulfilled' ? aniInfos[i].value : null;
 
                 const title = aniInfo?.title?.english || aniInfo?.title?.romaji || item.filename;
                 const nativeTitle = aniInfo?.title?.native || "N/A";
                 const score = aniInfo?.averageScore ? `${aniInfo.averageScore}/100` : "N/A";
-                const color = aniInfo?.coverImage?.color || "#1abc9c";
+                const color = aniInfo?.coverImage?.color || "#1abc9c"; // Note: V2 doesn't technically use this color directly in the same way, but keeping it for reference or if you need to use it in text.
+                const genres = aniInfo?.genres?.slice(0, 3).join(", ") || "N/A";
 
-                return new EmbedBuilder()
-                    .setColor(color)
-                    .setTitle(`🎬 ${title}`)
-                    .setURL(`https://anilist.co/anime/${item.anilist}`)
-                    .setDescription(`*${nativeTitle}*`)
-                    .setImage(item.image)
-                    .addFields(
-                        { name: "📊 Độ chính xác", value: createProgressBar(item.similarity), inline: false },
-                        { name: "🎞️ Tập số", value: `${item.episode || "Movie/Special"}`, inline: true },
-                        { name: "⏳ Thời điểm", value: `\`${formatTime(item.from)}\` → \`${formatTime(item.to)}\``, inline: true },
-                        { name: "⭐ Đánh giá", value: `\`${score}\``, inline: true },
-                        { name: "🏷️ Thể loại", value: `\`${aniInfo?.genres?.slice(0, 3).join(", ") || "N/A"}\``, inline: false }
-                    )
-                    .setFooter({ text: `Kết quả ${i + 1}/${results.length} • trace.moe` })
-                    .setTimestamp();
+                const container = new ContainerBuilder();
+
+                let content = `## 🎬 [${title}](https://anilist.co/anime/${item.anilist})\n`;
+                content += `*${nativeTitle}*\n\n`;
+                content += `**📊 Độ chính xác:** ${createProgressBar(item.similarity)}\n`;
+                content += `**🎞️ Tập số:** ${item.episode || "Movie/Special"} | **⏳ Thời điểm:** \`${formatTime(item.from)}\` → \`${formatTime(item.to)}\`\n`;
+                content += `**⭐ Đánh giá:** \`${score}\` | **🏷️ Thể loại:** \`${genres}\`\n\n`;
+                content += `*Kết quả ${i + 1}/${results.length} • trace.moe*`;
+
+                container.addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+
+                if (item.image) {
+                    container.addMediaGalleryComponents(
+                        new MediaGalleryBuilder().addItems(
+                            new MediaGalleryItemBuilder().setURL(item.image)
+                        )
+                    );
+                }
+
+                return container;
             });
 
             let page = 0;
@@ -166,7 +175,7 @@ module.exports = {
                         .setCustomId("next")
                         .setLabel("Sau")
                         .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(p === embeds.length - 1),
+                        .setDisabled(p === containers.length - 1),
                     new ButtonBuilder()
                         .setLabel("Xem Video Preview")
                         .setURL(results[p].video)
@@ -175,8 +184,8 @@ module.exports = {
             };
 
             const response = await interaction.editReply({
-                embeds: [embeds[0]],
-                components: [getRow(0)],
+                components: [containers[0], getRow(0)],
+                flags: MessageFlags.IsComponentsV2
             });
 
             const collector = response.createMessageComponentCollector({
@@ -189,8 +198,8 @@ module.exports = {
                 else if (i.customId === "prev") page--;
 
                 await i.update({
-                    embeds: [embeds[page]],
-                    components: [getRow(page)],
+                    components: [containers[page], getRow(page)],
+                    flags: MessageFlags.IsComponentsV2
                 });
             });
 

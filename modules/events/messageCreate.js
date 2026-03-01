@@ -14,12 +14,14 @@ module.exports = {
         if (message.guildId && message.channel.id !== IGNORED_CHANNEL) {
             const chName = (message.channel.name || "").toLowerCase();
             if (!IGNORE_KEYWORDS.some(k => chName.includes(k))) {
-                fancyLog({
-                    serverName: message.guild?.name || "DM",
-                    channelName: message.channel.name || "Unknown",
-                    userName: message.member?.displayName || message.author.username,
-                    content: message.content || "<media>",
-                }).catch(console.error);
+                try {
+                    fancyLog({
+                        serverName: message.guild?.name || "DM",
+                        channelName: message.channel.name || "Unknown",
+                        userName: message.member?.displayName || message.author.username,
+                        content: message.content || "<media>",
+                    });
+                } catch (e) { /* ignore logging errors */ }
             }
         }
         // Kiểm tra xem có phải lệnh !ask không (chấp nhận !ask hoặc !ask <nội dung>)

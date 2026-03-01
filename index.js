@@ -5,6 +5,8 @@ const { Client, Collection, GatewayIntentBits, Events } = require("discord.js");
 const deployCommands = require("./utils/deployCommands");
 const { fancyLog, initSpamControl, sysLog, printBanner, printLoadTable, printDeploy } = require("./utils/consoleLogger");
 const { connectDB } = require("./db/connect");
+const { GuildWarService } = require("./services/guildWarService");
+const { startDashboardApi } = require("./api/server");
 
 const MODE = process.env.MODE || 'dev';
 
@@ -74,6 +76,13 @@ printLoadTable({ commands: cmdNames, contexts: ctxNames, events });
     client.once(Events.ClientReady, (c) => {
       printBanner(c.user.tag);
       sysLog('READY', `Serving ${c.guilds.cache.size} guild(s) · ${c.users.cache.size} cached users`);
+
+      // Khởi chạy Guild War Cronjob
+      const guildWar = new GuildWarService(c);
+      guildWar.startCron();
+
+      // Khởi chạy REST API cho Dashboard Fuma-Nama Next.js
+      startDashboardApi(c);
     });
 
     client.login(process.env.TOKEN);
@@ -83,3 +92,33 @@ printLoadTable({ commands: cmdNames, contexts: ctxNames, events });
     process.exit(1);
   }
 })();
+
+// ── Graceful Shutdown ─────────────────────────────────────────────────────────
+async function gracefulShutdown(signal) {
+  sysLog('SHUTDOWN', `${signal} received — shutting down gracefully...`);
+  try {
+    client.destroy();
+    const mongoose = require('mongoose');
+    await mongoose.disconnect();
+    sysLog('SHUTDOWN', 'MongoDB disconnected. Goodbye! 👋');
+  } catch (e) {
+    console.error('[Shutdown] Error:', e);
+  }
+  process.exit(0);
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// ── Unhandled Errors ──────────────────────────────────────────────────────────
+process.on('unhandledRejection', (reason) => {
+  sysLog('ERROR', `Unhandled Promise Rejection: ${reason}`, require('chalk').hex('#ED4245'));
+  console.error(reason);
+});
+
+process.on('uncaughtException', (error) => {
+  sysLog('FATAL', `Uncaught Exception: ${error.message}`, require('chalk').hex('#ED4245'));
+  console.error(error);
+  // Cho process exit sau uncaught exception — không an toàn để tiếp tục
+  process.exit(1);
+});

@@ -1,0 +1,61 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - dev-v3
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Bot + Dashboard via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USERNAME }}
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+          port: 22
+          command_timeout: 10m
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            cd /home/ubuntu/Arya-Bot-Ver-3
+
+            echo "══════════════════════════════════════════"
+            echo "  📥 Pulling latest code..."
+            echo "══════════════════════════════════════════"
+            git pull origin dev-v3
+
+            echo ""
+            echo "══════════════════════════════════════════"
+            echo "  📦 Installing Bot dependencies..."
+            echo "══════════════════════════════════════════"
+            npm install
+
+            echo ""
+            echo "══════════════════════════════════════════"
+            echo "  🎨 Building Dashboard..."
+            echo "══════════════════════════════════════════"
+            cd dashboard
+            npm install -g pnpm 2>/dev/null || true
+            pnpm install --frozen-lockfile || pnpm install
+            pnpm build
+            cd ..
+
+            echo ""
+            echo "══════════════════════════════════════════"
+            echo "  🔄 Restarting Bot (PM2)..."
+            echo "══════════════════════════════════════════"
+            pm2 restart arya-bot-v3 || pm2 start index.js --name "arya-bot-v3"
+
+            echo ""
+            echo "══════════════════════════════════════════"
+            echo "  🌐 Restarting Dashboard (PM2)..."
+            echo "══════════════════════════════════════════"
+            pm2 restart arya-dashboard || pm2 start "cd /home/ubuntu/Arya-Bot-Ver-3/dashboard && pnpm start" --name "arya-dashboard"
+
+            pm2 save
+            echo ""
+            echo "✅ Deploy completed!"
