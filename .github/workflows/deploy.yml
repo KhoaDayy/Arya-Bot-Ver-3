@@ -50,9 +50,17 @@ jobs:
             echo "══════════════════════════════════════════"
             echo "  🎨 Building Dashboard..."
             echo "══════════════════════════════════════════"
+            # Tạo swap nếu chưa có (EC2 ít RAM)
+            if [ ! -f /swapfile ]; then
+              sudo fallocate -l 1G /swapfile
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+              sudo swapon /swapfile
+              echo "Swap 1G created"
+            fi
             cd "$APP_DIR/dashboard"
             pnpm install --frozen-lockfile || pnpm install
-            pnpm build
+            NODE_OPTIONS="--max-old-space-size=1024" pnpm build
             cd "$APP_DIR"
 
             echo ""

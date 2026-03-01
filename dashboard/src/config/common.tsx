@@ -17,18 +17,26 @@ const BotIcon = (props: any) => (
   </Box>
 );
 
+// User IDs được phép truy cập Dashboard dù không phải Admin server
+const DASHBOARD_ADMINS = [
+  '859281355392417824', // Hasu
+  '330239277449347075', // shiro
+];
+
 export const config: AppConfig = {
   name: 'Arya Bot',
   icon: BotIcon,
   inviteUrl:
     'https://discord.com/oauth2/authorize?client_id=1468604087015575840&permissions=268453888&integration_type=0&scope=bot',
   guild: {
-    //filter guilds that user has no permissions to manage it
     filter: (guild, user, botGuilds) => {
       const isBotInGuild = botGuilds?.includes(guild.id);
       const isAdmin = (Number(guild.permissions) & PermissionFlags.ADMINISTRATOR) !== 0;
+      const isDashAdmin = DASHBOARD_ADMINS.includes(user?.id ?? '');
 
-      return isAdmin || !!isBotInGuild;
+      // Admin server: hiện tất cả server mình là admin
+      // DASHBOARD_ADMINS: chỉ hiện server có bot tham gia
+      return isAdmin || (isDashAdmin && !!isBotInGuild);
     },
   },
 };
