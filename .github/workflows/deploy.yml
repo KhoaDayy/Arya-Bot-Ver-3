@@ -18,16 +18,9 @@ jobs:
           port: 22
           command_timeout: 10m
           script: |
-            # Load nvm nếu có
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-            # Đảm bảo npm global tools available
-            export PATH="$HOME/.nvm/versions/node/$(node -v)/bin:$PATH:$(npm config get prefix)/bin"
-
             APP_DIR="$HOME/Arya-Bot-Ver-3"
 
-            # Clone nếu chưa có, pull nếu đã có
+            # Clone nếu chưa có
             if [ ! -d "$APP_DIR" ]; then
               echo "📥 Cloning repo..."
               git clone https://github.com/KhoaDayy/Arya-Bot-Ver-3.git "$APP_DIR"
@@ -48,10 +41,10 @@ jobs:
 
             echo ""
             echo "══════════════════════════════════════════"
-            echo "  🔧 Installing global tools (pnpm, pm2)..."
+            echo "  🔧 Installing global tools..."
             echo "══════════════════════════════════════════"
-            which pnpm || npm install -g pnpm
-            which pm2 || npm install -g pm2
+            which pnpm || sudo npm install -g pnpm
+            which pm2  || sudo npm install -g pm2
 
             echo ""
             echo "══════════════════════════════════════════"
