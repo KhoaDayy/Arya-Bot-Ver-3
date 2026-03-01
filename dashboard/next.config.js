@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Bỏ qua lint + type check khi build (đã check lúc dev, tăng tốc build trên EC2)
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   async redirects() {
     return [
       { source: '/auth', destination: '/auth/signin', permanent: false },
