@@ -2,20 +2,23 @@ import { deepmerge } from 'deepmerge-ts';
 import { AccessToken } from '@/utils/auth/server';
 import { Options } from './core';
 
-const bot_api_endpoint = process.env.NEXT_PUBLIC_API_ENDPOINT ?? 'http://localhost:8080';
 const discord_api_endpoint = 'https://discord.com/api/v9';
 
-export function botRequest<T extends Options>(session: AccessToken, options: T): T {
+/**
+ * Bot API requests now go through the Next.js proxy at /api/bot/...
+ * This means:
+ * - No CORS issues (same origin)
+ * - API key hidden on server
+ * - Works identically on local and production
+ * - Session is verified server-side by the proxy
+ */
+export function botRequest<T extends Options>(_session: AccessToken, options: T): T {
   return {
     ...options,
-    origin: bot_api_endpoint,
+    origin: '/api/bot',
     request: deepmerge(
       {
-        headers: {
-          Authorization: `${session.token_type} ${session.access_token}`,
-        },
-        credentials: 'include',
-        mode: 'cors',
+        credentials: 'include' as RequestCredentials,
       },
       options.request
     ),

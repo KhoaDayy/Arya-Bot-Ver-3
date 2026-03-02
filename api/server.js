@@ -20,12 +20,33 @@ function apiKeyAuth(req, res, next) {
 
 function startDashboardApi(client) {
     const app = express();
+
+    // ── CORS — tự động nhận diện môi trường ────────────────────────────────
+    const allowedOrigins = [
+        'http://localhost:3000',       // local dashboard dev
+        'http://localhost:3001',       // local API (same-origin proxy)
+        process.env.DASHBOARD_URL,     // production dashboard URL (nếu set)
+    ].filter(Boolean);
+
     app.use(cors({
-        origin: process.env.DASHBOARD_URL || true,
-        credentials: true
+        origin: (origin, callback) => {
+            // Cho phép requests không có origin (server-side proxy, curl, etc.)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.includes(origin)) return callback(null, true);
+            callback(new Error(`CORS blocked: ${origin}`));
+        },
+        credentials: true,
     }));
     app.use(express.json());
     app.use(apiKeyAuth);
+
+    // ── Request Logger (dev only) ───────────────────────────────────────────
+    if (process.env.MODE === 'dev') {
+        app.use((req, _res, next) => {
+            console.log(`[API] ${req.method} ${req.path} ← ${req.headers.origin || 'server-side'}`);
+            next();
+        });
+    }
 
     const PORT = process.env.API_PORT || 3001;
 
