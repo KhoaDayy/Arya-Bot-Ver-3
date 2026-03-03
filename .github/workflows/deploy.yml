@@ -68,7 +68,10 @@ jobs:
 
             # Dọn dẹp cục bộ bằng cách move file từ /tmp vào thẳng thư mục code
             cp -r /tmp/dashboard-build/.next "$APP_DIR/dashboard/"
-            cp -r /tmp/dashboard-build/public "$APP_DIR/dashboard/"
+            # Đảm bảo source folder tồn tại trước khi cp
+            if [ -d "/tmp/dashboard-build/public" ]; then
+              cp -r /tmp/dashboard-build/public "$APP_DIR/dashboard/"
+            fi
             cp /tmp/dashboard-build/package.json "$APP_DIR/dashboard/"
             cp /tmp/dashboard-build/next.config.js "$APP_DIR/dashboard/"
             cp /tmp/dashboard-build/pnpm-lock.yaml "$APP_DIR/dashboard/"
