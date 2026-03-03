@@ -23,8 +23,6 @@ jobs:
           cd dashboard
           pnpm install
           pnpm build
-          # Trọng tâm: Nén toàn bộ .next, public và các config file quan trọng
-          tar -czf ../dashboard-build.tar.gz .next/ public/ package.json next.config.js pnpm-lock.yaml
 
       - name: Transfer Build to VPS via SCP
         uses: appleboy/scp-action@master
@@ -33,8 +31,9 @@ jobs:
           username: ${{ secrets.AWS_EC2_USERNAME }}
           key: ${{ secrets.AWS_EC2_SSH_KEY }}
           port: 22
-          source: "dashboard-build.tar.gz"
-          target: "/tmp/"
+          source: "dashboard/.next,dashboard/public,dashboard/package.json,dashboard/next.config.js,dashboard/pnpm-lock.yaml"
+          target: "/tmp/dashboard-build"
+          strip_components: 1
 
       - name: Update Code and Restart on VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -62,18 +61,26 @@ jobs:
 
             # 2. Xử lý Dashboard Build Transfer
             echo "══════════════════════════════════════════"
-            echo "  📦 Extracting pre-built Dashboard..."
-            cd "$APP_DIR/dashboard"
-            rm -rf .next
-            # Giải nén cục build tải từ GitHub runner (sẽ ghi đè public và config nếu có thay đổi)
-            tar -xzf /tmp/dashboard-build.tar.gz -C "$APP_DIR/dashboard"
-            rm -f /tmp/dashboard-build.tar.gz
+            echo "  📦 Moving pre-built Dashboard into place..."
+
+            # Xóa bản cũ
+            rm -rf "$APP_DIR/dashboard/.next"
+
+            # Dọn dẹp cục bộ bằng cách move file từ /tmp vào thẳng thư mục code
+            cp -r /tmp/dashboard-build/.next "$APP_DIR/dashboard/"
+            cp -r /tmp/dashboard-build/public "$APP_DIR/dashboard/"
+            cp /tmp/dashboard-build/package.json "$APP_DIR/dashboard/"
+            cp /tmp/dashboard-build/next.config.js "$APP_DIR/dashboard/"
+            cp /tmp/dashboard-build/pnpm-lock.yaml "$APP_DIR/dashboard/"
+
+            rm -rf /tmp/dashboard-build
 
             # Cài đặt công cụ nền
             which pnpm || sudo npm install -g pnpm
             which pm2  || sudo npm install -g pm2
 
             # Chỉ cài prod dependencies trên VPS để chạy
+            cd "$APP_DIR/dashboard"
             pnpm install --prod
 
             # 3. Handle Bot
