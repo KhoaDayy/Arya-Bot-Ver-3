@@ -18,7 +18,7 @@ const {
   handleWwmGroupButton,
   handleWwmModalSubmit,
 } = require('../commands/wwm-stats');
-const { handleGuildWarButton } = require('../../services/guildWarService');
+const { handleGuildWarButton } = require('../../services/guildWar');
 const { handleButton: handleGwRegButton, handleModalSubmit: handleGwRegModal } = require('../commands/gw-register');
 
 // Helper dùng chung để reply ephemeral → DRY, không lặp { ephemeral: true } 30+ lần

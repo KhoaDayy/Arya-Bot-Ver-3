@@ -13,7 +13,9 @@ import {
   fetchGuildWarRank,
   updateGuildWarLane,
   fetchBotGuilds,
-  fetchGwMembers
+  fetchGwMembers,
+  updateGwMember,
+  deleteGwMember
 } from '@/api/bot';
 import { GuildInfo } from '@/config/types';
 import { useAccessToken, useSession } from '@/utils/auth/hooks';
@@ -218,3 +220,32 @@ export function useGwMembersQuery(guild: string) {
     enabled: status === 'authenticated',
   });
 }
+
+export function useUpdateGwMemberMutation() {
+  const { session } = useSession();
+
+  return useMutation(
+    (options: { guild: string; userId: string; data: { ingameName?: string; role?: string; lane?: string } }) =>
+      updateGwMember(session!!, options.guild, options.userId, options.data),
+    {
+      onSuccess(_, options) {
+        client.invalidateQueries(['gw_members', options.guild]);
+      },
+    }
+  );
+}
+
+export function useDeleteGwMemberMutation() {
+  const { session } = useSession();
+
+  return useMutation(
+    (options: { guild: string; userId: string }) =>
+      deleteGwMember(session!!, options.guild, options.userId),
+    {
+      onSuccess(_, options) {
+        client.invalidateQueries(['gw_members', options.guild]);
+      },
+    }
+  );
+}
+

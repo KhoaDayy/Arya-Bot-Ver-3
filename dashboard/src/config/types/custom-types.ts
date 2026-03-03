@@ -23,7 +23,17 @@ export type GuildWarFeature = {
   timeT7?: string;
   timeCN?: string;
   reminderOffsets?: number[];
-  signupDeadline?: string; // Giờ đóng đăng ký Chủ Nhật (HH:mm), mặc định "20:00"
-  voiceCategory?: string; // Tự động tạo voice
+  signupDeadline?: string;
+  voiceCategory?: string;
   voiceNameTemplate?: string;
+  customization?: {
+    bannerUrl?: string;
+    logoUrl?: string;
+    pollTitle?: string;
+    pingMessage?: string;
+    reminderMessage?: string;
+    accentColorPoll?: string;
+    accentColorPing?: string;
+    accentColorReminder?: string;
+  };
 };

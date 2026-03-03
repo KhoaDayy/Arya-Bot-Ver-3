@@ -5,7 +5,7 @@ const { Client, Collection, GatewayIntentBits, Events } = require("discord.js");
 const deployCommands = require("./utils/deployCommands");
 const { fancyLog, initSpamControl, sysLog, printBanner, printLoadTable, printDeploy } = require("./utils/consoleLogger");
 const { connectDB } = require("./db/connect");
-const { GuildWarService } = require("./services/guildWarService");
+const { GuildWarService } = require("./services/guildWar");
 const { startDashboardApi } = require("./api/server");
 
 const MODE = process.env.MODE || 'dev';

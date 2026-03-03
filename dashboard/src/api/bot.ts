@@ -244,3 +244,39 @@ export async function updateGuildWarLane(
     })
   );
 }
+
+export async function updateGwMember(
+  session: AccessToken,
+  guild: string,
+  userId: string,
+  data: { ingameName?: string; role?: string; lane?: string }
+) {
+  return await callReturn(
+    `/api/guiwar/${guild}/members/${userId}`,
+    botRequest(session, {
+      request: {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    })
+  );
+}
+
+export async function deleteGwMember(
+  session: AccessToken,
+  guild: string,
+  userId: string
+) {
+  return await callReturn(
+    `/api/guiwar/${guild}/members/${userId}`,
+    botRequest(session, {
+      request: {
+        method: 'DELETE',
+      },
+    })
+  );
+}
+

@@ -12,9 +12,34 @@ Arya là một Discord Bot đa chức năng được viết bằng **discord.js 
 
 ---
 
+## 🎛️ Dashboard Preview
+
+<p align="center">
+  <img src="docs/preview/01-guild-overview.png" alt="Guild Overview" width="100%" />
+  <br /><em>Tổng quan Server — Báo danh tuần, biểu đồ role/lane, bảng xếp hạng</em>
+</p>
+
+<p align="center">
+  <img src="docs/preview/02-guild-war-settings.png" alt="Guild War Settings" width="100%" />
+  <br /><em>Cài đặt Guild War — Kênh, giờ war, reminder, deadline, voice channel</em>
+</p>
+
+<p align="center">
+  <img src="docs/preview/03-customization-preview.png" alt="Customization & Preview" width="100%" />
+  <br /><em>Tuỳ chỉnh giao diện — Form bên trái, Discord Preview thời gian thực bên phải</em>
+</p>
+
+<p align="center">
+  <img src="docs/preview/04-gw-members.png" alt="Guild War Members" width="100%" />
+  <br /><em>Quản lý thành viên — Stat cards, biểu đồ, tìm kiếm, lọc, sắp xếp, phân trang, sửa/xoá, xuất CSV</em>
+</p>
+
+---
+
 ## 📖 Mục Lục
 
 - [Tính Năng](#-tính-năng)
+- [Dashboard Preview](#-dashboard-preview)
 - [Cấu Trúc Dự Án](#-cấu-trúc-dự-án)
 - [Yêu Cầu](#-yêu-cầu)
 - [Cài Đặt](#-cài-đặt)
@@ -45,8 +70,9 @@ Arya là một Discord Bot đa chức năng được viết bằng **discord.js 
 | Tính năng | Mô tả |
 |---|---|
 | **Guild War Overview** | Bảng báo danh tuần, biểu đồ role/lane, bảng xếp hạng |
-| **Guild War Members** | Quản lý hồ sơ thành viên cố định, phân lane |
-| **Settings** | Cấu hình Guild War (kênh, giờ war, deadline...) |
+| **Guild War Members** | Quản lý hồ sơ thành viên: tìm kiếm, lọc role/lane, sắp xếp, phân trang, inline edit, xoá, xuất CSV |
+| **Guild War Customization** | Tuỳ chỉnh giao diện tin nhắn với Discord Preview thời gian thực |
+| **Settings** | Cấu hình Guild War (kênh, giờ war, deadline, voice channel...) |
 | **Dark/Light Mode** | Giao diện tối/sáng |
 
 ---
@@ -63,18 +89,26 @@ Arya-Bot-Ver-3/
 │   ├── src/
 │   │   ├── api/             # API client & React Query hooks
 │   │   ├── components/      # UI components (Chakra UI)
+│   │   ├── config/
+│   │   │   └── features/
+│   │   │       └── guild-war/   # Guild War sub-components
 │   │   └── pages/           # Next.js pages
 │   └── package.json
 ├── db/
 │   ├── connect.js           # MongoDB connection
 │   └── schemas.js           # Mongoose schemas
+├── docs/
+│   └── preview/             # Dashboard screenshots
 ├── modules/
-│   ├── commands/            # 20 slash commands
+│   ├── commands/            # Slash commands
 │   ├── contexts/            # Context menu commands
 │   └── events/              # Discord event handlers
 ├── services/
-│   ├── guildWarService.js   # Guild War core logic + cron
-│   └── facePresetService.js # Face preset processing
+│   └── guildWar/            # Guild War core logic
+│       ├── index.js         # Scheduler & cron
+│       ├── builders.js      # Discord message builders
+│       ├── buttonHandler.js # Button interaction handler
+│       └── helpers.js       # Constants & utilities
 ├── utils/                   # Tiện ích chung
 ├── index.js                 # Entry point
 ├── .env.example             # Template biến môi trường
@@ -174,8 +208,20 @@ Dashboard chạy trên **Next.js 13** + **Chakra UI**, giao tiếp với Bot qua
 | Route | Mô tả |
 |---|---|
 | `/guilds/[id]` | Guild War Overview — báo danh tuần, biểu đồ, bảng xếp hạng |
-| `/guilds/[id]/gw-members` | Quản lý thành viên GW cố định, phân lane, biểu đồ role/lane |
-| `/guilds/[id]/settings` | Cài đặt Guild War |
+| `/guilds/[id]/gw-members` | Quản lý thành viên GW — tìm kiếm, lọc, sắp xếp, sửa/xoá, xuất CSV |
+| `/guilds/[id]/features/guiwar` | Cài đặt & Tuỳ chỉnh Guild War |
+| `/guilds/[id]/settings` | Cài đặt chung |
+
+### API Endpoints
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| `GET` | `/api/guiwar/:guildId/list` | Danh sách báo danh tuần hiện tại |
+| `GET` | `/api/guiwar/:guildId/members` | Danh sách thành viên cố định |
+| `PATCH` | `/api/guiwar/:guildId/members/:userId` | Cập nhật thông tin thành viên |
+| `DELETE` | `/api/guiwar/:guildId/members/:userId` | Xoá thành viên |
+| `POST` | `/api/guiwar/:guildId/lane` | Cập nhật vị trí đi đường |
+| `GET` | `/api/guiwar/:guildId/rank` | Bảng xếp hạng |
 
 ---
 
@@ -194,7 +240,7 @@ Chủ Nhật 23:59        → Thu hồi role, archive poll
 ```
 
 ### Schemas
-- **GuildWarConfig** — Cấu hình per-guild (kênh, giờ, role...)
+- **GuildWarConfig** — Cấu hình per-guild (kênh, giờ, role, customization...)
 - **GuildWarMember** — Hồ sơ cố định (ingame name, role, lane) — đăng ký 1 lần
 - **GuildWarRegistration** — Dữ liệu báo danh theo tuần (ngày tham gia)
 - **GuildWarStats** — Thống kê tham gia (tổng trận, chuỗi liên tiếp)
@@ -216,6 +262,7 @@ Poll Button (T7/CN)   → Báo danh tuần này (dùng info đã register)
 | `/guiwar-setup` | Cấu hình Guild War cho server |
 | `/guiwar-force-start` | Gửi poll báo danh ngay lập tức |
 | `/guiwar-force-ping` | Ping war thủ công |
+| `/guiwar-force-voice` | Tạo voice channel thủ công |
 | `/guiwar-reset-week` | Reset dữ liệu tuần hiện tại |
 | `/wwm-stats` | Xem/cập nhật chỉ số WWM |
 | `/ani-search` | Tìm kiếm anime |

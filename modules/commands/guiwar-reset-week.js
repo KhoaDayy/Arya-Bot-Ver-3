@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const { GuildWarConfig, GuildWarRegistration } = require('../../db/schemas');
-const { getCurrentWeekId, GuildWarScheduler } = require('../../services/guildWarService');
+const { getCurrentWeekId, GuildWarScheduler } = require('../../services/guildWar');
 
 module.exports = {
     data: new SlashCommandBuilder()

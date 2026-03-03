@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { GuildWarRegistration, GuildWarStats, GuildWarConfig, GuildConfig, GuildWarMember } = require('../db/schemas');
-const { getCurrentWeekId } = require('../services/guildWarService');
+const { getCurrentWeekId } = require('../services/guildWar');
 
 // ── API Key Auth Middleware ─────────────────────────────────────────────────
 function apiKeyAuth(req, res, next) {
@@ -225,6 +225,45 @@ function startDashboardApi(client) {
         }
     });
 
+    // E. Cập nhật thông tin thành viên (ingameName, role, lane)
+    app.patch('/api/guiwar/:guildId/members/:userId', async (req, res) => {
+        const { guildId, userId } = req.params;
+        const { ingameName, role, lane } = req.body;
+
+        try {
+            const update = {};
+            if (ingameName !== undefined) update.ingameName = ingameName;
+            if (role !== undefined) update.role = role;
+            if (lane !== undefined) update.lane = lane;
+
+            const member = await GuildWarMember.findOneAndUpdate(
+                { guildId, userId },
+                { $set: update },
+                { new: true }
+            );
+
+            if (!member) return res.status(404).json({ error: "Member not found" });
+            return res.json({ success: true, member });
+        } catch (err) {
+            console.error("[GW API] Member Update Error:", err);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
+    // F. Xoá thành viên khỏi danh sách cố định
+    app.delete('/api/guiwar/:guildId/members/:userId', async (req, res) => {
+        const { guildId, userId } = req.params;
+
+        try {
+            const result = await GuildWarMember.deleteOne({ guildId, userId });
+            if (result.deletedCount === 0) return res.status(404).json({ error: "Member not found" });
+            return res.json({ success: true });
+        } catch (err) {
+            console.error("[GW API] Member Delete Error:", err);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
     // B. API trả về Bảng Xếp Hạng (Rankings)
     app.get('/api/guiwar/:guildId/rank', async (req, res) => {
         const guildId = req.params.guildId;
@@ -288,6 +327,7 @@ function startDashboardApi(client) {
                 signupDeadline: config.signupDeadline ?? '20:00',
                 voiceCategory: config.voiceCategory,
                 voiceNameTemplate: config.voiceNameTemplate || "Guild War",
+                customization: config.customization || {},
             });
         }
         return res.status(404).json({ error: "Feature not found" });
@@ -356,10 +396,14 @@ function startDashboardApi(client) {
                     signupDeadline: options.signupDeadline,
                     voiceCategory: options.voiceCategory,
                     voiceNameTemplate: options.voiceNameTemplate,
+                    customization: options.customization || {},
                     isActive: true
                 },
                 { upsert: true, new: true }
             );
+
+            // Invalidate guild war cache khi config thay đổi từ dashboard
+            try { require('../services/guildWar').configCache.invalidate(); } catch (_) { }
 
             return res.json({
                 channelId: config.channelId,
@@ -372,6 +416,7 @@ function startDashboardApi(client) {
                 signupDeadline: config.signupDeadline ?? '20:00',
                 voiceCategory: config.voiceCategory,
                 voiceNameTemplate: config.voiceNameTemplate || "Guild War",
+                customization: config.customization || {},
             });
         }
 

@@ -1,5 +1,9 @@
 const chalk = require('chalk');
-const moment = require('moment-timezone');
+const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -38,7 +42,7 @@ function initSpamControl() {
 
 // ── Timestamp ─────────────────────────────────────────────────────────────────
 function now() {
-  return moment().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss');
+  return dayjs().tz('Asia/Ho_Chi_Minh').format('HH:mm:ss');
 }
 
 // ── Startup box printer (dùng trong index.js qua logger) ──────────────────────

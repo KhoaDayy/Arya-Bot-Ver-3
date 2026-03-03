@@ -97,7 +97,18 @@ const guildWarConfigSchema = new Schema({
   voiceCategory: { type: String, default: null }, // ID Category để tự tạo voice
   voiceNameTemplate: { type: String, default: "Đánh Lãnh Địa Chiến" }, // Tên Voice tự tạo
   voiceChannelT7Id: { type: String, default: null },
-  voiceChannelCNId: { type: String, default: null }
+  voiceChannelCNId: { type: String, default: null },
+  // Tuỳ chỉnh giao diện tin nhắn cho từng server
+  customization: {
+    bannerUrl: { type: String, default: null },         // Banner poll (thay ảnh Steam mặc định)
+    logoUrl: { type: String, default: null },           // Logo thumbnail khi archive
+    pollTitle: { type: String, default: null },         // Tiêu đề poll, VD: "Báo Danh Guild War"
+    pingMessage: { type: String, default: null },       // Nội dung tin nhắn ping war
+    reminderMessage: { type: String, default: null },   // Nội dung tin nhắn nhắc nhở
+    accentColorPoll: { type: String, default: null },   // Hex color poll, VD: "#5865F2"
+    accentColorPing: { type: String, default: null },   // Hex color ping, VD: "#E74C3C"
+    accentColorReminder: { type: String, default: null }, // Hex color reminder, VD: "#F39C12"
+  },
 }, { timestamps: true });
 
 const guildWarRegistrationSchema = new Schema({

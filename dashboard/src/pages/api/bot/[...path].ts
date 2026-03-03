@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from '@/utils/auth/server';
+import { IncomingMessage } from 'http';
 
 /**
  * Catch-all proxy: /api/bot/* → Bot Express API
@@ -11,10 +12,33 @@ import { getServerSession } from '@/utils/auth/server';
  * - Không cần NEXT_PUBLIC_API_ENDPOINT nữa
  */
 
+// Tắt body parser mặc định của Next.js
+// để có thể forward raw body (FormData, file upload, v.v.) đúng cách
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
 // Server-only env — không lộ ra client
 const BOT_API_INTERNAL =
     process.env.BOT_API_INTERNAL || process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:3001';
 const DASHBOARD_API_KEY = process.env.DASHBOARD_API_KEY || '';
+
+/**
+ * Đọc raw body từ request stream
+ */
+function getRawBody(req: IncomingMessage): Promise<Uint8Array> {
+    return new Promise((resolve, reject) => {
+        const chunks: Uint8Array[] = [];
+        req.on('data', (chunk: Uint8Array) => chunks.push(chunk));
+        req.on('end', () => {
+            const buf = Buffer.concat(chunks);
+            resolve(new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength));
+        });
+        req.on('error', reject);
+    });
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     // 1. Verify user session
@@ -36,9 +60,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 3. Forward request
     try {
-        const headers: Record<string, string> = {
-            'Content-Type': req.headers['content-type'] || 'application/json',
-        };
+        const headers: Record<string, string> = {};
+
+        // Giữ nguyên Content-Type gốc (application/json, multipart/form-data, v.v.)
+        const incomingContentType = req.headers['content-type'];
+        if (incomingContentType) {
+            headers['Content-Type'] = incomingContentType;
+        }
 
         // Forward API key (server-only, không lộ ra client)
         if (DASHBOARD_API_KEY) {
@@ -53,10 +81,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             headers,
         };
 
-        // Forward body cho POST/PATCH/PUT/DELETE
-        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
-            fetchOptions.body =
-                typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+        // Forward raw body cho POST/PATCH/PUT/DELETE
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+            const rawBody = await getRawBody(req);
+            if (rawBody.length > 0) {
+                fetchOptions.body = rawBody as unknown as BodyInit;
+            }
         }
 
         const response = await fetch(url, fetchOptions);
