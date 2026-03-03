@@ -18,6 +18,7 @@ jobs:
           port: 22
           command_timeout: 10m
           script: |
+            set -e
             APP_DIR="$HOME/Arya-Bot-Ver-3"
 
             # Clone nếu chưa có
@@ -31,7 +32,9 @@ jobs:
             echo "══════════════════════════════════════════"
             echo "  📥 Pulling latest code..."
             echo "══════════════════════════════════════════"
-            git pull origin dev-v3
+            # Reset local changes để tránh conflict khi pull
+            git fetch origin dev-v3
+            git reset --hard origin/dev-v3
 
             echo ""
             echo "══════════════════════════════════════════"
