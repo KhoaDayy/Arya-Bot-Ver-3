@@ -23,8 +23,8 @@ jobs:
           cd dashboard
           pnpm install
           pnpm build
-          # Nén mục build lại để dễ dàng chuyển sang VPS
-          tar -czf ../dashboard-build.tar.gz .next/
+          # Trọng tâm: Nén toàn bộ .next, public và các config file quan trọng
+          tar -czf ../dashboard-build.tar.gz .next/ public/ package.json next.config.js pnpm-lock.yaml
 
       - name: Transfer Build to VPS via SCP
         uses: appleboy/scp-action@master
@@ -65,7 +65,7 @@ jobs:
             echo "  📦 Extracting pre-built Dashboard..."
             cd "$APP_DIR/dashboard"
             rm -rf .next
-            # Giải nén cục build tải từ GitHub runner
+            # Giải nén cục build tải từ GitHub runner (sẽ ghi đè public và config nếu có thay đổi)
             tar -xzf /tmp/dashboard-build.tar.gz -C "$APP_DIR/dashboard"
             rm -f /tmp/dashboard-build.tar.gz
 
@@ -82,11 +82,10 @@ jobs:
             cd "$APP_DIR"
             npm install
 
-            # 4. Restart everything
+            # 4. Restart everything via PM2 Ecosystem
             echo "══════════════════════════════════════════"
             echo "  🔄 Restarting PM2..."
-            pm2 restart arya-bot-v3 || pm2 start index.js --name "arya-bot-v3"
-            pm2 restart arya-dashboard || (cd "$APP_DIR/dashboard" && pm2 start "pnpm start" --name "arya-dashboard")
+            pm2 start ecosystem.config.js --update-env || pm2 reload ecosystem.config.js --update-env
 
             pm2 save
             echo ""
