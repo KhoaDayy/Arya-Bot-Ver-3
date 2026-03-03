@@ -18,6 +18,8 @@ jobs:
           node-version: 18
 
       - name: Build Dashboard on GitHub Runner (Fast)
+        env:
+          NEXT_PUBLIC_DASHBOARD_ADMINS: "859281355392417824,330239277449347075"
         run: |
           npm install -g pnpm
           cd dashboard
