@@ -6,10 +6,37 @@ on:
       - dev-v3
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy Bot + Dashboard via SSH
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Build Dashboard on GitHub Runner (Fast)
+        run: |
+          npm install -g pnpm
+          cd dashboard
+          pnpm install
+          pnpm build
+          # Nén mục build lại để dễ dàng chuyển sang VPS
+          tar -czf ../dashboard-build.tar.gz .next/
+
+      - name: Transfer Build to VPS via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USERNAME }}
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+          port: 22
+          source: "dashboard-build.tar.gz"
+          target: "/tmp/"
+
+      - name: Update Code and Restart on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AWS_EC2_HOST }}
@@ -21,63 +48,46 @@ jobs:
             set -e
             APP_DIR="$HOME/Arya-Bot-Ver-3"
 
-            # Clone nếu chưa có
+            # 1. Update source code (không build)
             if [ ! -d "$APP_DIR" ]; then
               echo "📥 Cloning repo..."
               git clone https://github.com/KhoaDayy/Arya-Bot-Ver-3.git "$APP_DIR"
             fi
 
             cd "$APP_DIR"
-
             echo "══════════════════════════════════════════"
             echo "  📥 Pulling latest code..."
-            echo "══════════════════════════════════════════"
-            # Reset local changes để tránh conflict khi pull
             git fetch origin dev-v3
             git reset --hard origin/dev-v3
 
-            echo ""
+            # 2. Xử lý Dashboard Build Transfer
             echo "══════════════════════════════════════════"
-            echo "  📦 Installing Bot dependencies..."
-            echo "══════════════════════════════════════════"
-            npm install
+            echo "  📦 Extracting pre-built Dashboard..."
+            cd "$APP_DIR/dashboard"
+            rm -rf .next
+            # Giải nén cục build tải từ GitHub runner
+            tar -xzf /tmp/dashboard-build.tar.gz -C "$APP_DIR/dashboard"
+            rm -f /tmp/dashboard-build.tar.gz
 
-            echo ""
-            echo "══════════════════════════════════════════"
-            echo "  🔧 Installing global tools..."
-            echo "══════════════════════════════════════════"
+            # Cài đặt công cụ nền
             which pnpm || sudo npm install -g pnpm
             which pm2  || sudo npm install -g pm2
 
-            echo ""
+            # Chỉ cài prod dependencies trên VPS để chạy
+            pnpm install --prod
+
+            # 3. Handle Bot
             echo "══════════════════════════════════════════"
-            echo "  🎨 Building Dashboard..."
-            echo "══════════════════════════════════════════"
-            # Tạo swap nếu chưa có (EC2 ít RAM)
-            if [ ! -f /swapfile ]; then
-              sudo fallocate -l 1G /swapfile
-              sudo chmod 600 /swapfile
-              sudo mkswap /swapfile
-              sudo swapon /swapfile
-              echo "Swap 1G created"
-            fi
-            cd "$APP_DIR/dashboard"
-            pnpm install --frozen-lockfile || pnpm install
-            NODE_OPTIONS="--max-old-space-size=1024" pnpm build
+            echo "  📦 Installing Bot dependencies..."
             cd "$APP_DIR"
+            npm install
 
-            echo ""
+            # 4. Restart everything
             echo "══════════════════════════════════════════"
-            echo "  🔄 Restarting Bot (PM2)..."
-            echo "══════════════════════════════════════════"
+            echo "  🔄 Restarting PM2..."
             pm2 restart arya-bot-v3 || pm2 start index.js --name "arya-bot-v3"
-
-            echo ""
-            echo "══════════════════════════════════════════"
-            echo "  🌐 Restarting Dashboard (PM2)..."
-            echo "══════════════════════════════════════════"
             pm2 restart arya-dashboard || (cd "$APP_DIR/dashboard" && pm2 start "pnpm start" --name "arya-dashboard")
 
             pm2 save
             echo ""
-            echo "✅ Deploy completed!"
+            echo "🚀 FAST DEPLOY COMPLETED! VPS didn't have to build!"
