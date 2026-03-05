@@ -1,0 +1,104 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - dev-v3
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Build Dashboard on GitHub Runner (Fast)
+        env:
+          NEXT_PUBLIC_DASHBOARD_ADMINS: "859281355392417824,330239277449347075"
+        run: |
+          npm install -g pnpm
+          cd dashboard
+          pnpm install
+          pnpm build
+
+      - name: Transfer Build to VPS via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USERNAME }}
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+          port: 22
+          source: "dashboard/.next,dashboard/public,dashboard/package.json,dashboard/next.config.js,dashboard/pnpm-lock.yaml"
+          target: "/tmp/dashboard-build"
+          strip_components: 1
+
+      - name: Update Code and Restart on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USERNAME }}
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+          port: 22
+          command_timeout: 10m
+          script: |
+            set -e
+            APP_DIR="$HOME/Arya-Bot-Ver-3"
+
+            # 1. Update source code (không build)
+            if [ ! -d "$APP_DIR" ]; then
+              echo "📥 Cloning repo..."
+              git clone https://github.com/KhoaDayy/Arya-Bot-Ver-3.git "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            echo "══════════════════════════════════════════"
+            echo "  📥 Pulling latest code..."
+            git fetch origin dev-v3
+            git reset --hard origin/dev-v3
+
+            # 2. Xử lý Dashboard Build Transfer
+            echo "══════════════════════════════════════════"
+            echo "  📦 Moving pre-built Dashboard into place..."
+
+            # Xóa bản cũ
+            rm -rf "$APP_DIR/dashboard/.next"
+
+            # Dọn dẹp cục bộ bằng cách move file từ /tmp vào thẳng thư mục code
+            cp -r /tmp/dashboard-build/.next "$APP_DIR/dashboard/"
+            # Đảm bảo source folder tồn tại trước khi cp
+            if [ -d "/tmp/dashboard-build/public" ]; then
+              cp -r /tmp/dashboard-build/public "$APP_DIR/dashboard/"
+            fi
+            cp /tmp/dashboard-build/package.json "$APP_DIR/dashboard/"
+            cp /tmp/dashboard-build/next.config.js "$APP_DIR/dashboard/"
+            cp /tmp/dashboard-build/pnpm-lock.yaml "$APP_DIR/dashboard/"
+
+            rm -rf /tmp/dashboard-build
+
+            # Cài đặt công cụ nền
+            which pnpm || sudo npm install -g pnpm
+            which pm2  || sudo npm install -g pm2
+
+            # Chỉ cài prod dependencies trên VPS để chạy
+            cd "$APP_DIR/dashboard"
+            pnpm install --prod
+
+            # 3. Handle Bot
+            echo "══════════════════════════════════════════"
+            echo "  📦 Installing Bot dependencies..."
+            cd "$APP_DIR"
+            npm install
+
+            # 4. Restart everything via PM2 Ecosystem
+            echo "══════════════════════════════════════════"
+            echo "  🔄 Restarting PM2..."
+            pm2 start ecosystem.config.js --update-env || pm2 reload ecosystem.config.js --update-env
+
+            pm2 save
+            echo ""
+            echo "🚀 FAST DEPLOY COMPLETED! VPS didn't have to build!"
