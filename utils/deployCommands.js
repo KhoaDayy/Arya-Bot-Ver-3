@@ -30,11 +30,19 @@ async function deployCommands() {
     const rest = new REST({ version: '10' }).setToken(TOKEN);
 
     if (MODE === 'dev') {
+        // Dev: deploy chỉ test guild
         await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
         // Xóa global commands khi dev để tránh confusing duplicates
         await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
     } else {
-        await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+        // Prod: deploy guild commands (instant) thay vì global (chờ 1 giờ)
+        // Lấy danh sách guild bot đang join
+        const guilds = await rest.get(Routes.userGuilds());
+        for (const g of guilds) {
+            await rest.put(Routes.applicationGuildCommands(CLIENT_ID, g.id), { body: commands });
+        }
+        // Xóa global commands nếu còn sót
+        await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
     }
 }
 
