@@ -280,3 +280,44 @@ export async function deleteGwMember(
   );
 }
 
+// --- Club Activity API ---
+
+import { ClubActivityConfigRes, ClubActivitySnapshotRes, ClubWeekSummary } from '@/config/types/custom-types';
+
+export async function fetchClubConfig(session: AccessToken, guild: string) {
+  return await callReturn<ClubActivityConfigRes>(
+    `/api/club/${guild}/config`,
+    botRequest(session, {
+      request: { method: 'GET' },
+    })
+  );
+}
+
+export async function fetchClubSnapshots(session: AccessToken, guild: string) {
+  return await callReturn<ClubWeekSummary[]>(
+    `/api/club/${guild}/snapshots`,
+    botRequest(session, {
+      request: { method: 'GET' },
+    })
+  );
+}
+
+export async function fetchClubSnapshot(session: AccessToken, guild: string, week?: string) {
+  const url = week ? `/api/club/${guild}/snapshot?week=${week}` : `/api/club/${guild}/snapshot`;
+  return await callReturn<ClubActivitySnapshotRes | null>(
+    url,
+    botRequest(session, {
+      request: { method: 'GET' },
+      allowed: { 404: () => null },
+    })
+  );
+}
+
+export async function forceClubFetch(session: AccessToken, guild: string) {
+  return await callReturn<{ success: boolean; weekId: string; memberCount: number; clubName: string }>(
+    `/api/club/${guild}/fetch`,
+    botRequest(session, {
+      request: { method: 'POST' },
+    })
+  );
+}

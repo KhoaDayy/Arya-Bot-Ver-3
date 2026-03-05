@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { GuildWarRegistration, GuildWarStats, GuildWarConfig, GuildConfig, GuildWarMember } = require('../db/schemas');
+const { GuildWarRegistration, GuildWarStats, GuildWarConfig, GuildConfig, GuildWarMember, ClubActivityConfig } = require('../db/schemas');
 const { getCurrentWeekId } = require('../services/guildWar');
 
 // ── API Key Auth Middleware ─────────────────────────────────────────────────
@@ -18,7 +18,7 @@ function apiKeyAuth(req, res, next) {
     next();
 }
 
-function startDashboardApi(client) {
+function startDashboardApi(client, clubActivity) {
     const app = express();
 
     // ── CORS — tự động nhận diện môi trường ────────────────────────────────
@@ -421,6 +421,86 @@ function startDashboardApi(client) {
         }
 
         return res.status(404).json({ error: "Feature not found" });
+    });
+
+    // --- Club Activity API (Quản lý cống hiến bang hội) ---
+
+    // Lấy config liên kết club
+    app.get('/api/club/:guildId/config', async (req, res) => {
+        try {
+            const config = await ClubActivityConfig.findOne({ guildId: req.params.guildId });
+            if (!config) return res.json({ clubId: null, clubName: null, isActive: false, server: 'SEA' });
+            return res.json({
+                clubId: config.clubId,
+                clubName: config.clubName,
+                server: config.server,
+                isActive: config.isActive,
+            });
+        } catch (err) {
+            console.error('[Club API] Config Error:', err);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    // Liệt kê các tuần đã có snapshot
+    app.get('/api/club/:guildId/snapshots', async (req, res) => {
+        try {
+            const weeks = await clubActivity.listWeeks(req.params.guildId);
+            return res.json(weeks);
+        } catch (err) {
+            console.error('[Club API] Snapshots Error:', err);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    // Lấy snapshot cụ thể (?week=2026-W10, default = mới nhất)
+    // Nếu chưa có snapshot nào → tự động fetch từ API
+    app.get('/api/club/:guildId/snapshot', async (req, res) => {
+        try {
+            const weekId = req.query.week || null;
+            let snapshot = await clubActivity.getSnapshot(req.params.guildId, weekId);
+
+            // Auto-fetch nếu chưa có snapshot nào (lần đầu mở trang)
+            if (!snapshot && !weekId) {
+                try {
+                    snapshot = await clubActivity.fetchAndSaveSnapshot(req.params.guildId);
+                } catch (fetchErr) {
+                    console.error('[Club API] Auto-fetch failed:', fetchErr.message);
+                    return res.status(404).json({ error: fetchErr.message || 'Chưa có dữ liệu và không thể auto-fetch.' });
+                }
+            }
+
+            if (!snapshot) return res.status(404).json({ error: 'Chưa có dữ liệu snapshot cho tuần này.' });
+            return res.json({
+                weekId: snapshot.weekId,
+                clubName: snapshot.clubName,
+                clubLevel: snapshot.clubLevel,
+                clubLiveness: snapshot.clubLiveness,
+                clubFame: snapshot.clubFame,
+                memberCount: snapshot.memberCount,
+                fetchedAt: snapshot.fetchedAt,
+                members: snapshot.members,
+            });
+        } catch (err) {
+            console.error('[Club API] Snapshot Error:', err);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    // Force fetch ngay lập tức
+    app.post('/api/club/:guildId/fetch', async (req, res) => {
+        try {
+            const snapshot = await clubActivity.fetchAndSaveSnapshot(req.params.guildId);
+            return res.json({
+                success: true,
+                weekId: snapshot.weekId,
+                memberCount: snapshot.memberCount,
+                clubName: snapshot.clubName,
+            });
+        } catch (err) {
+            console.error('[Club API] Force Fetch Error:', err);
+            return res.status(500).json({ error: err.message || 'Internal Server Error' });
+        }
     });
 
     // ── Centralized Error Handler ────────────────────────────────────────

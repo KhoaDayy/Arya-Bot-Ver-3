@@ -6,6 +6,7 @@ const deployCommands = require("./utils/deployCommands");
 const { fancyLog, initSpamControl, sysLog, printBanner, printLoadTable, printDeploy } = require("./utils/consoleLogger");
 const { connectDB } = require("./db/connect");
 const { GuildWarService } = require("./services/guildWar");
+const { ClubActivityService, ClubActivityScheduler } = require("./services/clubActivity");
 const { startDashboardApi } = require("./api/server");
 
 const MODE = process.env.MODE || 'dev';
@@ -81,8 +82,13 @@ printLoadTable({ commands: cmdNames, contexts: ctxNames, events });
       const guildWar = new GuildWarService(c);
       guildWar.startCron();
 
+      // Khởi chạy Club Activity auto-fetch scheduler
+      const clubActivity = new ClubActivityService(c);
+      const clubScheduler = new ClubActivityScheduler(clubActivity);
+      clubScheduler.start();
+
       // Khởi chạy REST API cho Dashboard Fuma-Nama Next.js
-      startDashboardApi(c);
+      startDashboardApi(c, clubActivity);
     });
 
     client.login(process.env.TOKEN);

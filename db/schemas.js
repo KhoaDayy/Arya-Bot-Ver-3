@@ -142,6 +142,42 @@ const guildWarStatsSchema = new Schema({
 
 guildWarStatsSchema.index({ guildId: 1, userId: 1 }, { unique: true });
 
+// --- Club Activity Schemas (Quản lý điểm cống hiến) ---
+const clubActivityConfigSchema = new Schema({
+  guildId: { type: String, required: true, unique: true }, // Discord guild ID
+  clubId: { type: String, default: null },                 // Game club ID (vd: "aRjHAeODlUBndMlI")
+  clubName: { type: String, default: null },               // Tên club (vd: "G-Slime")
+  server: { type: String, default: 'SEA', enum: ['SEA', 'CN'] }, // Server game
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true });
+
+const clubActivitySnapshotSchema = new Schema({
+  guildId: { type: String, required: true, index: true },
+  weekId: { type: String, required: true, index: true },   // Format: "2026-W10"
+  clubName: { type: String },
+  clubLevel: { type: Number },
+  clubLiveness: { type: Number },
+  clubFame: { type: Number },
+  memberCount: { type: Number },
+  fetchedAt: { type: Date, default: Date.now },
+  members: [{
+    pid: String,
+    nickname: String,
+    level: Number,
+    number_id: Number,
+    position: String,
+    hostnum: Number,
+    week_activity_point: Number,
+    last_week_activity: Number,
+    month_activity: Number,
+    total_activity: Number,
+    week_fund: Number,
+    total_fund: Number,
+  }]
+}, { timestamps: true });
+
+clubActivitySnapshotSchema.index({ guildId: 1, weekId: 1 }, { unique: true });
+
 const VoiceTemplate = mongoose.model('VoiceTemplate', voiceTemplateSchema);
 const VoiceParent = mongoose.model('VoiceParent', voiceParentSchema);
 const VoiceUser = mongoose.model('VoiceUser', voiceUserSchema);
@@ -155,7 +191,11 @@ const GuildWarRegistration = mongoose.model('GuildWarRegistration', guildWarRegi
 const GuildWarStats = mongoose.model('GuildWarStats', guildWarStatsSchema);
 const GuildWarMember = mongoose.model('GuildWarMember', guildWarMemberSchema);
 
+const ClubActivityConfig = mongoose.model('ClubActivityConfig', clubActivityConfigSchema);
+const ClubActivitySnapshot = mongoose.model('ClubActivitySnapshot', clubActivitySnapshotSchema);
+
 module.exports = {
   VoiceTemplate, VoiceParent, VoiceUser, FacePreset, GuildConfig, Conversation, WwmStats,
-  GuildWarConfig, GuildWarRegistration, GuildWarStats, GuildWarMember
+  GuildWarConfig, GuildWarRegistration, GuildWarStats, GuildWarMember,
+  ClubActivityConfig, ClubActivitySnapshot
 };

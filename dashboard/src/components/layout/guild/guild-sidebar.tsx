@@ -4,6 +4,7 @@ import { Icon, IconButton } from '@chakra-ui/react';
 import { HSeparator } from '@/components/layout/Separator';
 import { getFeatures } from '@/utils/common';
 import { IoSettings } from 'react-icons/io5';
+import { BsFillTrophyFill } from 'react-icons/bs';
 import { useGuildPreview } from '@/api/hooks';
 import { sidebarBreakpoint } from '@/theme/breakpoints';
 import { guild as view } from '@/config/translations/guild';
@@ -43,6 +44,12 @@ export function InGuildSidebar() {
           active={router.route === `/guilds/[guild]/gw-members`}
           icon={<Icon as={FaUsers} />}
           name="Guild War Members"
+        />
+        <SidebarItem
+          href={`/guilds/${guildId}/club-activity`}
+          active={router.route === `/guilds/[guild]/club-activity`}
+          icon={<Icon as={BsFillTrophyFill} />}
+          name="Cống Hiến Bang"
         />
         <HSeparator>Features</HSeparator>
         {getFeatures().map((feature) => (

@@ -3,17 +3,12 @@
 
 const { PermissionFlagsBits, MessageFlags } = require('discord.js');
 
-// User IDs có quyền quản lý bot (ngoài OWNER)
-const BOT_ADMINS = [
-    '330239277449347075', // shiro
-];
-
 /**
  * Kiểm tra xem user có phải owner của bot không
  * @param {string} userId
  */
 function isOwner(userId) {
-    return userId === process.env.OWNER_ID || BOT_ADMINS.includes(userId);
+    return userId === process.env.OWNER_ID;
 }
 
 /**

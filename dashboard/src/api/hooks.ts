@@ -15,7 +15,11 @@ import {
   fetchBotGuilds,
   fetchGwMembers,
   updateGwMember,
-  deleteGwMember
+  deleteGwMember,
+  fetchClubConfig,
+  fetchClubSnapshots,
+  fetchClubSnapshot,
+  forceClubFetch,
 } from '@/api/bot';
 import { GuildInfo } from '@/config/types';
 import { useAccessToken, useSession } from '@/utils/auth/hooks';
@@ -249,3 +253,47 @@ export function useDeleteGwMemberMutation() {
   );
 }
 
+// --- Club Activity Hooks ---
+
+export function useClubConfigQuery(guild: string) {
+  const { status, session } = useSession();
+
+  return useQuery(['club_config', guild], () => fetchClubConfig(session!!, guild), {
+    enabled: status === 'authenticated',
+  });
+}
+
+export function useClubSnapshotsQuery(guild: string) {
+  const { status, session } = useSession();
+
+  return useQuery(['club_snapshots', guild], () => fetchClubSnapshots(session!!, guild), {
+    enabled: status === 'authenticated',
+  });
+}
+
+export function useClubSnapshotQuery(guild: string, week?: string) {
+  const { status, session } = useSession();
+
+  return useQuery(
+    ['club_snapshot', guild, week || 'latest'],
+    () => fetchClubSnapshot(session!!, guild, week),
+    {
+      enabled: status === 'authenticated',
+    }
+  );
+}
+
+export function useForceClubFetchMutation() {
+  const { session } = useSession();
+
+  return useMutation(
+    (options: { guild: string }) => forceClubFetch(session!!, options.guild),
+    {
+      onSuccess(_, options) {
+        client.invalidateQueries(['club_snapshots', options.guild]);
+        client.invalidateQueries(['club_snapshot', options.guild]);
+        client.invalidateQueries(['club_config', options.guild]);
+      },
+    }
+  );
+}
