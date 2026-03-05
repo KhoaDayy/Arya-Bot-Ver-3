@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="docs/banner.png" alt="Arya Bot v3 Banner" width="700" />
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/discord.js-v14-5865F2?logo=discord&logoColor=white" />
   <img src="https://img.shields.io/badge/Next.js-13-black?logo=next.js&logoColor=white" />
   <img src="https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white" />
@@ -9,6 +13,73 @@
 # 🤖 Arya Bot v3
 
 Arya là một Discord Bot đa chức năng được viết bằng **discord.js v14**, kèm **Dashboard** quản lý bằng **Next.js + Chakra UI**. Bot phục vụ cho cộng đồng game MMORPG với các tính năng nổi bật: **Guild War**, AI Chat (Gemini), quét chỉ số WWM, và nhiều tiện ích khác.
+
+---
+
+## 🔗 Links
+
+<p align="center">
+  <a href="https://discord.com/oauth2/authorize?client_id=1468604087015575840&permissions=8&scope=bot%20applications.commands">
+    <img src="https://img.shields.io/badge/🤖_Invite_Bot-5865F2?style=for-the-badge&logo=discord&logoColor=white" />
+  </a>
+  &nbsp;
+  <a href="https://arya-bot.vercel.app">
+    <img src="https://img.shields.io/badge/🌐_Dashboard_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white" />
+  </a>
+  &nbsp;
+  <a href="#-mục-lục">
+    <img src="https://img.shields.io/badge/📖_Documentation-2ea44f?style=for-the-badge" />
+  </a>
+</p>
+
+---
+
+## ⚡ Quick Start
+
+```bash
+git clone https://github.com/KhoaDayy/Arya-Bot-Ver-3.git
+cd Arya-Bot-Ver-3
+npm install
+cp .env.example .env      # → Điền thông tin vào .env
+node index.js              # → Bot sẵn sàng!
+```
+
+> 📌 Xem phần [Cài Đặt](#-cài-đặt) và [Cấu Hình](#-cấu-hình) để biết chi tiết đầy đủ.
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    A["👾 Discord"]
+    B["🤖 discord.js Bot"]
+    C[("🍃 MongoDB Atlas")]
+    D["🌐 Express API<br/><code>api/server.js :3001</code>"]
+    E["🎛️ Next.js Dashboard<br/><code>Chakra UI</code>"]
+    F["🧠 Gemini AI"]
+    G["🔄 GitHub Actions CI/CD"]
+    H["☁️ AWS EC2"]
+
+    A <-->|"Events & Commands"| B
+    B -->|"Read / Write"| C
+    B -->|"AI Chat"| F
+    D -->|"Query Data"| C
+    E -->|"REST API"| D
+    G -->|"Auto Deploy"| H
+    H -->|"Hosts"| B
+    H -->|"Hosts"| D
+    H -->|"Hosts"| E
+
+    style A fill:#5865F2,stroke:#454FBF,color:#fff
+    style B fill:#2C2F33,stroke:#5865F2,color:#fff
+    style C fill:#47A248,stroke:#3B8A3E,color:#fff
+    style D fill:#1a1a2e,stroke:#6c63ff,color:#fff
+    style E fill:#000000,stroke:#ffffff,color:#fff
+    style F fill:#4285F4,stroke:#3367D6,color:#fff
+    style G fill:#2088FF,stroke:#1A6FD6,color:#fff
+    style H fill:#FF9900,stroke:#D68400,color:#fff
+```
 
 ---
 
@@ -38,8 +109,11 @@ Arya là một Discord Bot đa chức năng được viết bằng **discord.js 
 
 ## 📖 Mục Lục
 
-- [Tính Năng](#-tính-năng)
+- [Links](#-links)
+- [Quick Start](#-quick-start)
+- [Architecture](#-architecture)
 - [Dashboard Preview](#-dashboard-preview)
+- [Tính Năng](#-tính-năng)
 - [Cấu Trúc Dự Án](#-cấu-trúc-dự-án)
 - [Yêu Cầu](#-yêu-cầu)
 - [Cài Đặt](#-cài-đặt)
@@ -50,6 +124,7 @@ Arya là một Discord Bot đa chức năng được viết bằng **discord.js 
 - [Slash Commands](#-slash-commands)
 - [Deploy (CI/CD)](#-deploy-cicd)
 - [Database Schemas](#-database-schemas)
+- [Contributors](#-contributors)
 
 ---
 
@@ -313,6 +388,24 @@ Bot sử dụng **GitHub Actions** để tự động deploy lên **AWS EC2** kh
 | `GuildWarMember` | Hồ sơ GW cố định (ingame, role, lane) |
 | `GuildWarRegistration` | Báo danh GW theo tuần |
 | `GuildWarStats` | Thống kê tham gia GW |
+
+---
+
+## 👨‍💻 Contributors
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/KhoaDayy">
+        <img src="https://github.com/KhoaDayy.png" width="100px;" alt="KhoaDayy" />
+        <br />
+        <sub><b>KhoaDayy</b></sub>
+      </a>
+      <br />
+      <sub>🎯 Creator & Maintainer</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
