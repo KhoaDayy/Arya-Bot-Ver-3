@@ -8,7 +8,11 @@ const GUILD_ID = process.env.GUILD_ID;
 const TOKEN = process.env.TOKEN;
 const MODE = process.env.MODE || 'dev';
 
-async function deployCommands() {
+/**
+ * Deploy slash commands lên Discord.
+ * @param {string[]} [guildIds] - Danh sách guild IDs (prod). Nếu không truyền, dùng GUILD_ID từ env (dev).
+ */
+async function deployCommands(guildIds) {
     const commands = [];
 
     const loadCommands = (dir) => {
@@ -30,20 +34,20 @@ async function deployCommands() {
     const rest = new REST({ version: '10' }).setToken(TOKEN);
 
     if (MODE === 'dev') {
-        // Dev: deploy chỉ test guild
+        // Dev: deploy chỉ test guild (instant)
         await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
-        // Xóa global commands khi dev để tránh confusing duplicates
         await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
     } else {
-        // Prod: deploy guild commands (instant) thay vì global (chờ 1 giờ)
-        // Lấy danh sách guild bot đang join
-        const guilds = await rest.get(Routes.userGuilds());
-        for (const g of guilds) {
-            await rest.put(Routes.applicationGuildCommands(CLIENT_ID, g.id), { body: commands });
+        // Prod: deploy từng guild (instant) thay vì global (chờ 1 giờ)
+        const ids = guildIds || [GUILD_ID];
+        for (const id of ids) {
+            await rest.put(Routes.applicationGuildCommands(CLIENT_ID, id), { body: commands });
         }
         // Xóa global commands nếu còn sót
         await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
     }
+
+    return commands.length;
 }
 
 module.exports = deployCommands;

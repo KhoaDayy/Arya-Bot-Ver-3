@@ -67,14 +67,15 @@ printLoadTable({ commands: cmdNames, contexts: ctxNames, events });
     // Kết nối MongoDB
     await connectDB();
 
-    // Deploy commands
-    await deployCommands();
-    printDeploy(MODE, cmdNames.length + ctxNames.length);
-
     initSpamControl();
 
     // In banner sau khi login thành công (handler trong ready.js)
-    client.once(Events.ClientReady, (c) => {
+    client.once(Events.ClientReady, async (c) => {
+      // Deploy commands sau khi client ready — truyền guild IDs từ cache
+      const guildIds = c.guilds.cache.map(g => g.id);
+      await deployCommands(guildIds);
+      printDeploy(MODE, cmdNames.length + ctxNames.length);
+
       printBanner(c.user.tag);
       sysLog('READY', `Serving ${c.guilds.cache.size} guild(s) · ${c.users.cache.size} cached users`);
 
