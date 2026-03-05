@@ -40,6 +40,17 @@ module.exports = {
     category: "🏯 Guild Management",
 
     async execute(interaction) {
+        // Cho phép OWNER_ID từ env hoặc Discord Admin dùng lệnh
+        const isOwner = interaction.user.id === process.env.OWNER_ID;
+        const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+
+        if (!isOwner && !isAdmin) {
+            return interaction.reply({
+                content: "❌ Bạn cần quyền **Administrator** hoặc là bot owner để dùng lệnh này.",
+                ephemeral: true,
+            });
+        }
+
         const subcommand = interaction.options.getSubcommand();
 
         if (subcommand === "link") return handleLink(interaction);
@@ -166,7 +177,7 @@ async function handleInfo(interaction) {
 
     if (!config || !config.clubName) {
         return interaction.editReply({
-            content: "⚠️ Server này chưa liên kết bang hội nào. Dùng `/club-setup link` để bắt đầu.",
+            content: "⚠️ Server này chưa liên kết bang hội nào. Dùng `/guild-setup link` để bắt đầu.",
         });
     }
 
