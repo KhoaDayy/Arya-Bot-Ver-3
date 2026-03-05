@@ -4,6 +4,7 @@
   <img src="https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white" />
   <img src="https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white" />
   <img src="https://img.shields.io/badge/PM2-Managed-2B037A?logo=pm2&logoColor=white" />
+  [![Deploy to AWS EC2](https://github.com/KhoaDayy/Arya-Bot-Ver-3/actions/workflows/deploy.yml/badge.svg)](https://github.com/KhoaDayy/Arya-Bot-Ver-3/actions/workflows/deploy.yml)
 </p>
 
 # 🤖 Arya Bot v3
