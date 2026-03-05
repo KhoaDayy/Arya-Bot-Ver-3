@@ -8,7 +8,6 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName("guild-setup")
         .setDescription("Liên kết bang hội (Guild/Club) với server Discord để theo dõi cống hiến")
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(sub =>
             sub.setName("link")
                 .setDescription("Liên kết bang hội với server này")
