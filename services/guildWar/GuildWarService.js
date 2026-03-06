@@ -42,8 +42,14 @@ class GuildWarService extends EventEmitter {
     async sendPoll(guild, config) {
         try {
             const channel = guild.channels.cache.get(config.channelId)
-                || await guild.channels.fetch(config.channelId).catch(() => null);
-            if (!channel) return;
+                || await guild.channels.fetch(config.channelId).catch((err) => {
+                    console.error(`[GuildWar] ❌ Không thể fetch channel ${config.channelId} trong ${guild.name}: ${err.message}`);
+                    return null;
+                });
+            if (!channel) {
+                console.warn(`[GuildWar] ⚠️ Channel ${config.channelId} không tìm thấy trong ${guild.name} (${guild.id}) — bỏ qua gửi poll.`);
+                return;
+            }
 
             const weekId = getCurrentWeekId();
             const payload = buildPollPayload(weekId, config);

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const { GuildWarConfig } = require('../../db/schemas');
 const { GuildWarService } = require('../../services/guildWar');
+const { isOwner } = require('../../utils/guards');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -21,6 +22,10 @@ module.exports = {
 
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        if (!isOwner(interaction.user.id) && !interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
+            return interaction.editReply('❌ Bạn không có quyền sử dụng lệnh này.');
+        }
 
         const guildId = interaction.guildId;
         const config = await GuildWarConfig.findOne({ guildId });

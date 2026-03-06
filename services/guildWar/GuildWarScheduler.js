@@ -39,10 +39,17 @@ class GuildWarScheduler {
         const currentTime = currentNow.format('HH:mm');
 
         const guild = this.service.client.guilds.cache.get(config.guildId);
-        if (!guild) return;
+        if (!guild) {
+            // Chỉ log 1 lần mỗi phút để tránh spam
+            if (currentTime.endsWith('0')) {
+                console.warn(`[GuildWar] ⚠️ Guild ${config.guildId} không có trong cache — bỏ qua. Bot có còn trong server này không?`);
+            }
+            return;
+        }
 
         // 1. Gửi Poll (theo pollDay cấu hình)
         if (currentDay === config.pollDay && currentTime === config.pollTime) {
+            console.log(`[GuildWar] 📩 Đang gửi Poll cho ${guild.name} (${guild.id}) — Day=${currentDay} Time=${currentTime}`);
             await this.service.sendPoll(guild, config);
         }
 
