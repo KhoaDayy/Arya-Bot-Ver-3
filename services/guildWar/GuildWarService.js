@@ -68,6 +68,49 @@ class GuildWarService extends EventEmitter {
         }
     }
 
+    async bumpPoll(guild, config) {
+        try {
+            if (!config.currentPollChannelId) {
+                console.warn(`[GuildWar] Bỏ qua bump poll vì không có channel lưu trong config: ${guild.name}`);
+                return false;
+            }
+
+            const channel = guild.channels.cache.get(config.currentPollChannelId)
+                || await guild.channels.fetch(config.currentPollChannelId).catch(() => null);
+            if (!channel) return false;
+
+            if (config.currentPollMessageId) {
+                const oldMsg = await channel.messages.fetch(config.currentPollMessageId).catch(() => null);
+                if (oldMsg) {
+                    await oldMsg.delete().catch(() => null);
+                }
+            }
+
+            const weekId = getCurrentWeekId();
+            const regs = await GuildWarRegistration.find({ guildId: guild.id, weekId, 'days.0': { $exists: true } });
+            const counts = {
+                t7: regs.filter(r => r.days.includes('T7')).length,
+                cn: regs.filter(r => r.days.includes('CN')).length,
+                all: regs.filter(r => r.days.includes('T7') && r.days.includes('CN')).length,
+            };
+
+            const payload = buildPollPayload(weekId, config, counts);
+            const msg = await channel.send(payload);
+
+            await GuildWarConfig.updateOne(
+                { guildId: guild.id },
+                { currentPollMessageId: msg.id }
+            );
+            configCache.invalidate();
+
+            console.log(`[GuildWar] Poll bumped → ${guild.name} (${guild.id}) msg ${msg.id}`);
+            return true;
+        } catch (e) {
+            console.error(`[GuildWar] bumpPoll failed ${guild.name} (${guild.id}):`, e);
+            return false;
+        }
+    }
+
     async sendReminder(guild, config, dayStr, offsetMinutes) {
         try {
             const channel = guild.channels.cache.get(config.channelId)
