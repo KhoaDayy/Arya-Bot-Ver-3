@@ -6,8 +6,7 @@ const { isOwner } = require('../../utils/guards');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('guiwar-force-ping')
-        .setDescription('[Admin] Cưỡng ép gửi thông báo nhắc nhở Guild War ngay lập tức')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setDescription('[Admin] Cưỡng ép gửi thông báo nhắc nhở Guild War ngay lập tức'),
 
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });

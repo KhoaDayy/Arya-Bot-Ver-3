@@ -6,8 +6,7 @@ const { isOwner } = require('../../utils/guards');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('guiwar-reset-week')
-        .setDescription('[Admin] Đóng Poll tuần hiện tại và tạo Poll báo danh của Tuần mới')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setDescription('[Admin] Đóng Poll tuần hiện tại và tạo Poll báo danh của Tuần mới'),
 
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });

@@ -7,7 +7,6 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('guiwar-force-voice')
         .setDescription('[Admin] Test tạo/xoá Voice Channel cho Guild War')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addStringOption(opt =>
             opt.setName('action')
                 .setDescription('Hành động muốn thực hiện')
