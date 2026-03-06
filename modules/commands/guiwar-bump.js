@@ -5,7 +5,7 @@ const { isOwner } = require('../../utils/guards');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('guiwar-bump')
+        .setName('guildwar-bump')
         .setDescription('[Admin] Bump tin nhắn Poll lên đầu chat (giữ nguyên vote)'),
 
     async execute(interaction) {
