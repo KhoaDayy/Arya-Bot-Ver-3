@@ -5,7 +5,7 @@ const { isOwner } = require('../../utils/guards');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('guiwar-force-start')
+        .setName('guildwar-force-start')
         .setDescription('[Admin] Ép mở poll đăng ký Guild War ngay lập tức (Bỏ qua lịch trình cron)'),
 
     async execute(interaction) {

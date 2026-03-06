@@ -3,7 +3,7 @@ const { GuildWarConfig } = require('../../db/schemas');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('guiwar-setup')
+        .setName('guildwar-setup')
         .setDescription('Thiết lập hệ thống đăng ký và nhắc lịch Guild War tự động.')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         // ─── Required ───────────────────────────────────────────────────────

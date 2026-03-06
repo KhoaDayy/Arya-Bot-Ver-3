@@ -5,7 +5,7 @@ const { isOwner } = require('../../utils/guards');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('guiwar-force-voice')
+        .setName('guildwar-force-voice')
         .setDescription('[Admin] Test tạo/xoá Voice Channel cho Guild War')
         .addStringOption(opt =>
             opt.setName('action')

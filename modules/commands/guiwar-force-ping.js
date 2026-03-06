@@ -5,7 +5,7 @@ const { isOwner } = require('../../utils/guards');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('guiwar-force-ping')
+        .setName('guildwar-force-ping')
         .setDescription('[Admin] Cưỡng ép gửi thông báo nhắc nhở Guild War ngay lập tức'),
 
     async execute(interaction) {
