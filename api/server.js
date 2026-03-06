@@ -131,6 +131,12 @@ function startDashboardApi(client, clubActivity) {
         try {
             // Chỉ lấy những ai có đăng ký ít nhất 1 ngày (days không rỗng — loại bỏ người hủy)
             const regs = await GuildWarRegistration.find({ guildId, weekId, 'days.0': { $exists: true } });
+
+            // Lấy dữ liệu member cố định để merge lane/role nếu registration chưa có
+            const userIds = regs.map(r => r.userId);
+            const members = await GuildWarMember.find({ guildId, userId: { $in: userIds } });
+            const memberMap = new Map(members.map(m => [m.userId, m]));
+
             const resultList = await Promise.all(regs.map(async (reg) => {
                 let userDisp = `UID: ${reg.userId}`;
                 try {
@@ -139,13 +145,14 @@ function startDashboardApi(client, clubActivity) {
                 } catch (e) {
                     // Ignore, fallback to UID
                 }
+                const member = memberMap.get(reg.userId);
                 return {
                     userId: userDisp,
                     rawUserId: reg.userId,
                     days: reg.days,
-                    role: reg.role,
-                    ingameName: reg.ingameName,
-                    lane: reg.lane,
+                    role: reg.role || member?.role || '',
+                    ingameName: reg.ingameName || member?.ingameName || '',
+                    lane: reg.lane || member?.lane || '',
                     createdAt: reg.createdAt
                 };
             }));

@@ -532,16 +532,18 @@ function GuildWarRoleStatsPanel({ guild }: { guild: string }) {
 
   const regs = query.data?.data || [];
 
-  const getCount = (roleValue: string) => regs.filter(r => r.role === roleValue).length;
-  const dpsCount = getCount('DPS');
-  const tankCount = getCount('Tank');
-  const healerCount = getCount('Healer');
-
-  const data = [
-    { name: 'Sát Thương (DPS)', value: dpsCount, color: '#FC8181' },
-    { name: 'Đỡ Đòn (Tank)', value: tankCount, color: '#63B3ED' },
-    { name: 'Hồi Máu (Healer)', value: healerCount, color: '#68D391' }
-  ].filter(d => d.value > 0);
+  // Đếm động tất cả role (freeform), bỏ qua role rỗng
+  const ROLE_COLORS = ['#FC8181', '#63B3ED', '#68D391', '#F6AD55', '#B794F4', '#F687B3', '#76E4F7', '#FBD38D'];
+  const roleCounts = new Map<string, number>();
+  regs.forEach(r => {
+    const role = (r.role || '').trim();
+    if (role) roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
+  });
+  const data = Array.from(roleCounts.entries()).map(([name, value], idx) => ({
+    name,
+    value,
+    color: ROLE_COLORS[idx % ROLE_COLORS.length],
+  }));
 
   return (
     <Box
@@ -594,7 +596,7 @@ function GuildWarRoleStatsPanel({ guild }: { guild: string }) {
           </ResponsiveContainer>
         )}
       </Box>
-      <Flex justify="center" gap={4} pb={4}>
+      <Flex justify="center" gap={4} pb={4} flexWrap="wrap">
         {data.map((entry, index) => (
           <Flex align="center" gap={2} key={index}>
             <Box w={3} h={3} rounded="full" bg={entry.color} />
