@@ -80,6 +80,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             fullPresetStr += ' ' + JSON.stringify(extraData);
         }
 
+        // --- UPDATE DATABASE ---
+        try {
+            await axios.post('http://localhost:3001/api/community-faces', {
+                id: finalId,
+                data: data,
+            }, {
+                headers: {
+                    'x-api-key': process.env.DASHBOARD_API_KEY || '',
+                },
+                timeout: 5000,
+            });
+        } catch (dbErr: any) {
+            console.error('[Feature-API: Save DB Error]', dbErr.message);
+            // Non-blocking error, just log it and continue
+        }
+
         return res.status(200).json({
             id: finalId,
             name: data.name || 'Unknown',

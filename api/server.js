@@ -357,6 +357,26 @@ function startDashboardApi(client, clubActivity) {
         }
     });
 
+    // POST save a newly converted face preset from dashboard
+    app.post('/api/community-faces', async (req, res) => {
+        const { id, data } = req.body;
+        if (!id || !data) {
+            return res.status(400).json({ error: 'Missing id or data' });
+        }
+
+        try {
+            const preset = await FacePreset.findOneAndUpdate(
+                { id },
+                { $set: { data } },
+                { upsert: true, new: true }
+            );
+            return res.status(200).json({ success: true, preset });
+        } catch (err) {
+            console.error('[Community-Face API] Save Error:', err);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
     // --- Dashboard Settings API endpoints ---
 
     // GET feature options
