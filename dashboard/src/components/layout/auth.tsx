@@ -1,87 +1,42 @@
-// Chakra imports
-import { Box, HStack, Spacer, Text } from '@chakra-ui/react';
-import { config } from '@/config/common';
 import { ReactNode } from 'react';
-import { SelectField } from '../forms/SelectField';
 import { languages, names, useLang } from '@/config/translations/provider';
 import { common } from '@/config/translations/common';
+import { config } from '@/config/common';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <Box
-      w="full"
-      h="100vh"
-      overflow="hidden"
-      position="relative"
-      bg="linear-gradient(135deg, #0b0725 0%, #150942 50%, #18092a 100%)"
-    >
-      {/* Decorative glows inspired by Stitch output */}
-      <Box
-        position="absolute"
-        top="-10%"
-        left="-5%"
-        w="500px"
-        h="500px"
-        rounded="full"
-        bg="purple.500"
-        opacity={0.15}
-        filter="blur(100px)"
-        pointerEvents="none"
-      />
-      <Box
-        position="absolute"
-        bottom="-10%"
-        right="-5%"
-        w="400px"
-        h="400px"
-        rounded="full"
-        bg="brand.500"
-        opacity={0.15}
-        filter="blur(120px)"
-        pointerEvents="none"
-      />
-      <Box
-        position="absolute"
-        top="40%"
-        left="50%"
-        transform="translate(-50%, -50%)"
-        w="600px"
-        h="600px"
-        rounded="full"
-        bg="#422AFB"
-        opacity={0.08}
-        filter="blur(150px)"
-        pointerEvents="none"
-      />
+    <div className="relative min-h-screen w-full overflow-hidden bg-black text-white selection:bg-white/30 font-sans">
+      {/* Animated Moving Cyber-Grid */}
+      <div
+        className="absolute inset-0 bg-[linear-gradient(to_right,#1b1b1b_1px,transparent_1px),linear-gradient(to_bottom,#1b1b1b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-80 pointer-events-none animate-grid-move"
+        style={{ height: '200%', top: '-100%' }}
+      ></div>
+
+      {/* Animated Radar Scanning Line */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-900/20 to-transparent w-full h-[150%] animate-grid-scan pointer-events-none opacity-50 mix-blend-screen"></div>
 
       {/* Header bar */}
-      <HStack
-        pos="fixed"
-        top={0}
-        left={0}
-        w="full"
-        zIndex={10}
-        px={{ base: 5, lg: 10 }}
-        py={4}
-        bg="transparent"
-      >
-        <HStack gap={3}>
-          {config.icon?.({ w: 8, h: 8 })}
-          <Text fontWeight="800" fontSize="xl" color="white" letterSpacing="tight">
+      <header className="fixed top-0 left-0 w-full z-50 px-6 lg:px-12 py-6 flex justify-between items-center bg-black/60 backdrop-blur-xl border-b border-white/5">
+        <div className="flex items-center gap-4">
+          <div className="w-8 h-8 rounded-sm bg-white flex items-center justify-center">
+            {config.icon?.({ w: 5, h: 5, color: "black" }) || <div className="w-4 h-4 bg-black"></div>}
+          </div>
+          <span className="font-extrabold text-xl tracking-tighter text-white uppercase">
             {config.name}
-          </Text>
-        </HStack>
-        <Spacer />
-        <Box w="140px">
+          </span>
+        </div>
+
+        <div>
           <LanguageSelect />
-        </Box>
-      </HStack>
+        </div>
+      </header>
 
       {/* Page Content */}
-      <Box w="full" h="full" pos="relative" zIndex={1} overflow="auto">
+      <main className="relative z-10 w-full h-full min-h-screen pt-24 pb-12">
         {children}
-      </Box>
-    </Box>
+      </main>
+    </div>
   );
 }
 
@@ -90,18 +45,17 @@ function LanguageSelect() {
   const t = common.useTranslations();
 
   return (
-    <SelectField
-      id="lang"
-      value={{
-        label: names[lang],
-        value: lang,
-      }}
-      onChange={(e) => e != null && setLang(e.value)}
-      options={languages.map(({ name, key }) => ({
-        label: name,
-        value: key,
-      }))}
-      placeholder={t['select lang']}
-    />
+    <Select value={lang} onValueChange={(v) => setLang(v as any)}>
+      <SelectTrigger className="w-[140px] bg-black border-white/20 text-white shadow-none focus:ring-0">
+        <SelectValue placeholder={t['select lang']} />
+      </SelectTrigger>
+      <SelectContent className="bg-zinc-950 border-white/10 text-white">
+        {languages.map(({ name, key }) => (
+          <SelectItem key={key} value={key} className="focus:bg-white/10 focus:text-white">
+            {name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

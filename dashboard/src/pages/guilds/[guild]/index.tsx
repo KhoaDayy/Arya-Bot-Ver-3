@@ -1,40 +1,20 @@
-import {
-  Center,
-  Flex,
-  Heading,
-  SimpleGrid,
-  Text,
-  Button,
-  Icon,
-  Box,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  Badge,
-  Spinner,
-  HStack,
-  Avatar,
-  Select,
-  useToast,
-  useColorModeValue,
-} from '@chakra-ui/react';
+import { useRef, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
-
 import { LoadingPanel } from '@/components/panel/LoadingPanel';
 import { QueryStatus } from '@/components/panel/QueryPanel';
 import { config } from '@/config/common';
 import { guild as view } from '@/config/translations/guild';
-import { BsMailbox, BsFillTrophyFill, BsListCheck, BsPeopleFill, BsCalendarCheck } from 'react-icons/bs';
+import { BsMailbox, BsFillTrophyFill, BsListCheck, BsPeopleFill, BsCalendarCheck, BsLightningChargeFill } from 'react-icons/bs';
 import { FaRobot, FaFire, FaMedal } from 'react-icons/fa';
+import { FiSettings, FiExternalLink, FiChevronDown } from 'react-icons/fi';
 import { useGuildInfoQuery, useGuildWarListQuery, useGuildWarRankQuery, useUpdateGuildWarLaneMutation } from '@/api/hooks';
 import { useRouter } from 'next/router';
-import { Banner } from '@/components/GuildBanner';
+import Link from 'next/link';
 import type { CustomGuildInfo } from '@/config/types/custom-types';
 import { NextPageWithLayout } from '@/pages/_app';
 import getGuildLayout from '@/components/layout/guild/get-guild-layout';
+import { useTheme } from 'next-themes';
 
 const GuildPage: NextPageWithLayout = () => {
   const t = view.useTranslations();
@@ -43,653 +23,361 @@ const GuildPage: NextPageWithLayout = () => {
 
   return (
     <QueryStatus query={query} loading={<LoadingPanel />} error={t.error.load}>
-      {query.data != null ? (
-        <GuildPanel guild={guild} info={query.data} />
-      ) : (
-        <NotJoined guild={guild} />
-      )}
+      {!guild ? <LoadingPanel /> : query.data != null ? <CompactDesktopDashboard guild={guild} info={query.data} /> : <NotJoined guild={guild} />}
     </QueryStatus>
   );
 };
 
-function StatCard({
-  icon,
-  label,
-  value,
-  color,
-  isLoading,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  color: string;
-  isLoading?: boolean;
-}) {
+// ═══════════════════════════════════════════════════════════
+// ██  CLEAN PC DASHBOARD (Light/Dark SaaS Aesthetic)
+// ═══════════════════════════════════════════════════════════
+function CompactDesktopDashboard({ guild: id, info }: { guild: string; info: CustomGuildInfo }) {
+  const t = view.useTranslations();
+  const warList = useGuildWarListQuery(id);
+  const warRank = useGuildWarRankQuery(id);
+
+  const signups = warList.data?.data.length ?? 0;
+  const topPlayer = warRank.data?.data[0];
+  const participants = warRank.data?.data.length ?? 0;
+  const weekNum = warList.data?.week?.split('-W')[1] ?? '?';
+
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <Box
-      p={5}
-      rounded="2xl"
-      bgColor="PanelBoundary"
-      shadow="md"
-      position="relative"
-      overflow="hidden"
-      transition="transform 0.2s ease, box-shadow 0.2s ease"
-      _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
-    >
-      {/* Background accent */}
-      <Box
-        position="absolute"
-        top={-4}
-        right={-4}
-        w="80px"
-        h="80px"
-        rounded="full"
-        bg={`${color}20`}
-        pointerEvents="none"
-      />
-      <Flex align="center" gap={4}>
-        <Flex
-          w="48px"
-          h="48px"
-          rounded="xl"
-          bg={`${color}20`}
-          align="center"
-          justify="center"
-          flexShrink={0}
-        >
-          <Icon as={icon} w={5} h={5} color={color} />
-        </Flex>
-        <Box>
-          <Text fontSize="xs" color="TextSecondary" fontWeight="600" textTransform="uppercase" letterSpacing="wide">
-            {label}
-          </Text>
-          {isLoading ? (
-            <Spinner size="sm" color={color} mt={1} />
-          ) : (
-            <Text fontSize="2xl" fontWeight="800" lineHeight="shorter">
-              {value}
-            </Text>
+    <div className="w-full flex-col flex gap-0 text-zinc-900 dark:text-zinc-50 antialiased selection:bg-indigo-500/30">
+
+      {/* ─── HEADER / HERO ─── */}
+      <div className="border-b border-zinc-200 dark:border-white/10 bg-white dark:bg-transparent z-20">
+        <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" />
+              <span className="text-[10px] font-semibold tracking-wider text-indigo-700 dark:text-indigo-300 uppercase">System Active</span>
+            </div>
+            <h1 className="flex flex-col gap-1 text-3xl md:text-4xl font-bold tracking-tight mb-2 text-zinc-900 dark:text-white">
+              <span>{t.banner.title}</span>
+              <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-blue-500 dark:from-cyan-400 dark:to-indigo-400">
+                Command Center
+              </span>
+            </h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xl leading-relaxed">
+              {t.banner.description} Quản lý lịch trình, phân chia vị trí đi đường và theo dõi thành tích Guild War trực tiếp từ đây.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link href={`/guilds/${id}/settings`} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-zinc-800 shadow-sm text-zinc-700 dark:text-zinc-300">
+              <FiSettings size={14} /> Cài đặt
+            </Link>
+            <Link href={`/guilds/${id}/features/guiwar`} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 hover:bg-indigo-700 dark:bg-white dark:hover:bg-zinc-200 border border-transparent text-white dark:text-black shadow-sm">
+              <BsLightningChargeFill size={14} className="text-indigo-200 dark:text-zinc-500" /> Cấu hình Guild War
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+        className="max-w-[1400px] mx-auto px-6 md:px-8 py-8 flex flex-col gap-8"
+      >
+
+        {/* ─── METRICS ROW ─── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <motion.div variants={fadeInUp}><MetricCard title="Báo danh tuần" value={warList.isLoading ? '...' : signups} subtitle={`Tuần ${weekNum}`} icon={BsPeopleFill} /></motion.div>
+          <motion.div variants={fadeInUp}><MetricCard title="Tổng thành viên" value={warRank.isLoading ? '...' : participants} subtitle="Đã tham gia" icon={BsFillTrophyFill} /></motion.div>
+          <motion.div variants={fadeInUp}><MetricCard title="Top tham gia" value={warRank.isLoading ? '...' : topPlayer ? topPlayer.totalWars : 0} subtitle="Trận lớn nhất" icon={FaFire} trend="+ Chăm chỉ" /></motion.div>
+          <motion.div variants={fadeInUp}><MetricCard title="Trạng thái" value="Online" subtitle="Hệ thống ổn định" icon={FaRobot} trend="Chạy tốt" trendPositive /></motion.div>
+        </div>
+
+        {/* ─── DATA GRID (Table + Charts) ─── */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
+
+          {/* Main Table (Left 8 cols) */}
+          <motion.div variants={fadeInUp} className="xl:col-span-8 bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10">
+                  <BsListCheck size={16} />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Danh Sách Báo Danh</h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Tuần {weekNum}</p>
+                </div>
+              </div>
+              <Link href={`/guilds/${id}/gw-members`} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                Quản lý thành viên <FiExternalLink />
+              </Link>
+            </div>
+            <div className="flex-1 p-2 md:p-6">
+              <WarListTable guild={id} />
+            </div>
+          </motion.div>
+
+          {/* Charts (Right 4 cols) */}
+          <div className="xl:col-span-4 flex flex-col gap-6 md:gap-8">
+            <motion.div variants={fadeInUp} className="flex-1 bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+              <div className="px-6 py-4 border-b border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Phân tích Lane</h3>
+              </div>
+              <div className="flex-1 p-6 flex flex-col justify-center">
+                <LaneChart guild={id} />
+              </div>
+            </motion.div>
+
+            <motion.div variants={fadeInUp} className="flex-1 bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+              <div className="px-6 py-4 border-b border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Tỉ lệ Role</h3>
+              </div>
+              <div className="flex-1 p-6 flex flex-col justify-center">
+                <RoleChart guild={id} />
+              </div>
+            </motion.div>
+          </div>
+
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, subtitle, icon: Icon, trend, trendPositive }: any) {
+  return (
+    <div className="flex flex-col p-5 bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{title}</span>
+        <div className="text-zinc-400 dark:text-zinc-500"><Icon size={16} /></div>
+      </div>
+      <div>
+        <div className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white mb-2">{value}</div>
+        <div className="flex items-center gap-2">
+          {trend && (
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${trendPositive ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400'}`}>
+              {trend}
+            </span>
           )}
-        </Box>
-      </Flex>
-    </Box>
+          <span className="text-xs text-zinc-500 dark:text-zinc-500">{subtitle}</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
-function GuildPanel({ guild: id, info }: { guild: string; info: CustomGuildInfo }) {
-  const warListQuery = useGuildWarListQuery(id);
-  const warRankQuery = useGuildWarRankQuery(id);
+// ═══════════════════════════════════════════════════════════
+// ██  WAR LIST TABLE
+// ═══════════════════════════════════════════════════════════
+function WarListTable({ guild }: { guild: string }) {
+  const q = useGuildWarListQuery(guild);
 
-  const totalSignups = warListQuery.data?.data.length ?? 0;
-  const topPlayer = warRankQuery.data?.data[0];
-  const totalParticipants = warRankQuery.data?.data.length ?? 0;
+  if (q.isLoading) return <Loader />;
+  if (q.isError) return <p className="text-red-400">Lỗi hệ thống</p>;
+  if (!q.data?.data.length) return <EmptyState msg="Hệ thống chưa ghi nhận báo danh tuần này." />;
 
   return (
-    <Flex direction="column" gap={6}>
-      <Banner />
-
-      {/* Stat Cards */}
-      <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={4}>
-        <StatCard
-          icon={BsPeopleFill}
-          label="Đã báo danh tuần này"
-          value={warListQuery.isLoading ? '...' : totalSignups}
-          color="var(--chakra-colors-blue-400)"
-          isLoading={warListQuery.isLoading}
-        />
-        <StatCard
-          icon={BsFillTrophyFill}
-          label="Người tham gia tổng"
-          value={warRankQuery.isLoading ? '...' : totalParticipants}
-          color="var(--chakra-colors-yellow-400)"
-          isLoading={warRankQuery.isLoading}
-        />
-        <StatCard
-          icon={FaFire}
-          label="Top tham gia"
-          value={warRankQuery.isLoading ? '...' : topPlayer ? `${topPlayer.totalWars} trận` : 'N/A'}
-          color="var(--chakra-colors-orange-400)"
-          isLoading={warRankQuery.isLoading}
-        />
-      </SimpleGrid>
-
-      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={5}>
-        <GuildWarListPanel guild={id} />
-        <GuildWarRankPanel guild={id} />
-      </SimpleGrid>
-
-      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={5}>
-        <GuildWarLaneStatsPanel guild={id} />
-        <GuildWarRoleStatsPanel guild={id} />
-      </SimpleGrid>
-    </Flex>
+    <div className="overflow-x-auto -mx-2">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="border-b border-zinc-200 dark:border-white/5">
+            <th className="py-5 px-4 text-xs font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400 whitespace-nowrap">Discord Username</th>
+            <th className="py-5 px-4 text-xs font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">Tên Ingame</th>
+            <th className="py-5 px-4 text-xs font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">Lịch Tham Gia</th>
+            <th className="py-5 px-4 text-xs font-semibold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">Vị trí</th>
+          </tr>
+        </thead>
+        <tbody className="text-sm">
+          {q.data.data.map((item, i) => (
+            <tr key={i} className="group border-b border-zinc-100 dark:border-white/5 hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
+              <td className="py-5 px-4">
+                <span className="font-mono text-sm text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-white/5 px-2.5 py-1.5 rounded-md">{item.userId}</span>
+              </td>
+              <td className="py-5 px-4 flex flex-col justify-center items-start gap-1.5 min-h-[4rem]">
+                <span className="font-semibold text-zinc-900 dark:text-white text-base">{item.ingameName || <span className="text-zinc-400 dark:text-zinc-600 italic">Unidentified</span>}</span>
+                <RoleBadge role={item.role} />
+              </td>
+              <td className="py-5 px-4">
+                <div className="flex gap-2">
+                  {item.days.map((d: string) => (
+                    <span key={d} className={`px-2.5 py-1 rounded text-[11px] uppercase font-bold tracking-wider
+                      ${d === 'T7'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-cyan-500/10 dark:text-cyan-400'
+                        : 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400'}`}>
+                      {d === 'T7' ? 'SAT' : 'SUN'}
+                    </span>
+                  ))}
+                </div>
+              </td>
+              <td className="py-5 px-4">
+                <LaneSelect guildId={guild} weekId={q.data?.week || ''} userId={item.rawUserId || ''} currentLane={item.lane || ''} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
-function GuildWarListPanel({ guild }: { guild: string }) {
-  const query = useGuildWarListQuery(guild);
-  const weekNum = query.data?.week?.split('-W')[1] ?? 'N/A';
 
-  return (
-    <Box
-      rounded="2xl"
-      overflow="hidden"
-      shadow="md"
-      bgColor="PanelBoundary"
-      border="1px solid"
-      borderColor="whiteAlpha.100"
-      _light={{ borderColor: 'blackAlpha.100' }}
-    >
-      {/* Panel Header */}
-      <Flex
-        align="center"
-        justify="space-between"
-        px={5}
-        py={4}
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.100"
-        _light={{ borderColor: 'blackAlpha.100' }}
-      >
-        <HStack gap={3}>
-          <Flex
-            w="36px"
-            h="36px"
-            rounded="lg"
-            bg="rgba(59, 130, 246, 0.15)"
-            _dark={{ bg: 'rgba(96, 165, 250, 0.15)' }}
-            align="center"
-            justify="center"
-          >
-            <Icon as={BsListCheck} w={4} h={4} color="blue.400" />
-          </Flex>
-          <Box>
-            <Heading size="sm" fontWeight="700">Danh Sách Báo Danh</Heading>
-            <Text fontSize="xs" color="TextSecondary">Tuần {weekNum}</Text>
-          </Box>
-        </HStack>
-        {!query.isLoading && !query.isError && (
-          <Badge colorScheme="blue" rounded="full" px={3} py={1} fontSize="xs">
-            {query.data?.data.length ?? 0} người
-          </Badge>
-        )}
-      </Flex>
 
-      <Box p={4}>
-        {query.isLoading ? (
-          <Flex justify="center" py={8}>
-            <Spinner color="blue.400" />
-          </Flex>
-        ) : query.isError ? (
-          <Flex justify="center" py={8}>
-            <Text color="red.400" fontSize="sm">Lỗi lấy dữ liệu</Text>
-          </Flex>
-        ) : (
-          <Box overflowX="auto">
-            <Table variant="unstyled" size="sm">
-              <Thead>
-                <Tr>
-                  <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Discord ID</Th>
-                  <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Ingame & Vai trò</Th>
-                  <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Ngày tham gia</Th>
-                  <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Vị trí (Lane)</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {query.data?.data.map((item, idx) => (
-                  <Tr
-                    key={idx}
-                    _hover={{ bgColor: 'whiteAlpha.50', _light: { bgColor: 'blackAlpha.50' } }}
-                    transition="background 0.15s ease"
-                    rounded="lg"
-                  >
-                    <Td py={2.5}>
-                      <Badge colorScheme="purple" variant="subtle" px={2.5} py={0.5} rounded="full" fontSize="xs">
-                        {item.userId}
-                      </Badge>
-                    </Td>
-                    <Td py={2.5}>
-                      <Flex direction="column" gap={1}>
-                        <Text fontSize="sm" fontWeight="600">{item.ingameName || <Text as="span" color="gray.500" fontStyle="italic">Chưa có</Text>}</Text>
-                        <Badge w="fit-content" colorScheme={item.role === 'DPS' ? 'red' : item.role === 'Healer' ? 'green' : item.role === 'Tank' ? 'blue' : 'gray'} fontSize="2xs">
-                          {item.role || 'N/A'}
-                        </Badge>
-                      </Flex>
-                    </Td>
-                    <Td py={2.5}>
-                      <HStack gap={2} flexWrap="wrap">
-                        {item.days.map((d) => (
-                          <Badge key={d} colorScheme={d === 'T7' ? 'cyan' : 'orange'} rounded="full" px={2.5} fontSize="xs">
-                            {d === 'T7' ? 'Thứ 7' : 'Chủ Nhật'}
-                          </Badge>
-                        ))}
-                      </HStack>
-                    </Td>
-                    <Td py={2.5}>
-                      <LaneSelect
-                        guildId={guild}
-                        weekId={query.data?.week || ''}
-                        userId={item.rawUserId || ''}
-                        currentLane={item.lane || ''}
-                      />
-                    </Td>
-                  </Tr>
-                ))}
-                {query.data?.data.length === 0 && (
-                  <Tr>
-                    <Td colSpan={4} textAlign="center" py={10} color="TextSecondary">
-                      <Flex direction="column" align="center" gap={2}>
-                        <Icon as={BsCalendarCheck} w={8} h={8} opacity={0.3} />
-                        <Text fontSize="sm">Chưa có ai báo danh trong tuần này</Text>
-                      </Flex>
-                    </Td>
-                  </Tr>
-                )}
-              </Tbody>
-            </Table>
-          </Box>
-        )}
-      </Box>
-    </Box>
-  );
-}
+// ═══════════════════════════════════════════════════════════
+// ██  CHARTS
+// ═══════════════════════════════════════════════════════════
+function LaneChart({ guild }: { guild: string }) {
+  const q = useGuildWarListQuery(guild);
+  if (q.isLoading || q.isError || !q.data?.data.length) return <div className="h-[200px] flex items-center justify-center"><EmptyState msg="No data" /></div>;
 
-function GuildWarRankPanel({ guild }: { guild: string }) {
-  const query = useGuildWarRankQuery(guild);
-
-  const medalColor = (idx: number) => {
-    if (idx === 0) return 'yellow.300';
-    if (idx === 1) return 'gray.300';
-    if (idx === 2) return 'orange.400';
-    return 'TextSecondary';
-  };
-
-  const rankLabel = (idx: number) => {
-    if (idx === 0) return '🥇';
-    if (idx === 1) return '🥈';
-    if (idx === 2) return '🥉';
-    return `#${idx + 1}`;
-  };
-
-  return (
-    <Box
-      rounded="2xl"
-      overflow="hidden"
-      shadow="md"
-      bgColor="PanelBoundary"
-      border="1px solid"
-      borderColor="whiteAlpha.100"
-      _light={{ borderColor: 'blackAlpha.100' }}
-    >
-      {/* Panel Header */}
-      <Flex
-        align="center"
-        justify="space-between"
-        px={5}
-        py={4}
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.100"
-        _light={{ borderColor: 'blackAlpha.100' }}
-      >
-        <HStack gap={3}>
-          <Flex
-            w="36px"
-            h="36px"
-            rounded="lg"
-            bg="rgba(234, 179, 8, 0.15)"
-            _dark={{ bg: 'rgba(250, 204, 21, 0.15)' }}
-            align="center"
-            justify="center"
-          >
-            <Icon as={BsFillTrophyFill} w={4} h={4} color="yellow.400" />
-          </Flex>
-          <Box>
-            <Heading size="sm" fontWeight="700">Bảng Vàng Chăm Chỉ</Heading>
-            <Text fontSize="xs" color="TextSecondary">Xếp hạng tổng tham gia</Text>
-          </Box>
-        </HStack>
-        {!query.isLoading && !query.isError && (
-          <Badge colorScheme="yellow" rounded="full" px={3} py={1} fontSize="xs">
-            {query.data?.data.length ?? 0} người
-          </Badge>
-        )}
-      </Flex>
-
-      <Box p={4}>
-        {query.isLoading ? (
-          <Flex justify="center" py={8}>
-            <Spinner color="yellow.400" />
-          </Flex>
-        ) : query.isError ? (
-          <Flex justify="center" py={8}>
-            <Text color="red.400" fontSize="sm">Lỗi lấy dữ liệu</Text>
-          </Flex>
-        ) : (
-          <Box overflowX="auto">
-            <Table variant="unstyled" size="sm">
-              <Thead>
-                <Tr>
-                  <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Hạng</Th>
-                  <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Discord ID</Th>
-                  <Th isNumeric color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Tổng</Th>
-                  <Th isNumeric color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Chuỗi</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {query.data?.data.map((item, idx) => {
-                  const isTop3 = idx < 3;
-                  return (
-                    <Tr
-                      key={idx}
-                      _hover={{ bgColor: 'whiteAlpha.50', _light: { bgColor: 'blackAlpha.50' } }}
-                      transition="background 0.15s ease"
-                    >
-                      <Td py={2.5}>
-                        <Text
-                          fontWeight="700"
-                          fontSize={isTop3 ? 'md' : 'sm'}
-                          color={medalColor(idx)}
-                        >
-                          {rankLabel(idx)}
-                        </Text>
-                      </Td>
-                      <Td py={2.5}>
-                        <Badge
-                          colorScheme={isTop3 ? 'purple' : 'gray'}
-                          variant="subtle"
-                          px={2.5}
-                          py={0.5}
-                          rounded="full"
-                          fontSize="xs"
-                        >
-                          {item.userId}
-                        </Badge>
-                      </Td>
-                      <Td isNumeric py={2.5}>
-                        <Text fontWeight="700" color="blue.300" fontSize="sm">
-                          {item.totalWars}
-                        </Text>
-                      </Td>
-                      <Td isNumeric py={2.5}>
-                        <HStack justify="flex-end" gap={1}>
-                          <Icon as={FaFire} w={3} h={3} color="orange.400" />
-                          <Text color="orange.300" fontSize="sm" fontWeight="600">
-                            {item.consecutiveWeeks}w
-                          </Text>
-                        </HStack>
-                      </Td>
-                    </Tr>
-                  );
-                })}
-                {query.data?.data.length === 0 && (
-                  <Tr>
-                    <Td colSpan={4} textAlign="center" py={10} color="TextSecondary">
-                      <Flex direction="column" align="center" gap={2}>
-                        <Icon as={FaMedal} w={8} h={8} opacity={0.3} />
-                        <Text fontSize="sm">Chưa có dữ liệu tham gia</Text>
-                      </Flex>
-                    </Td>
-                  </Tr>
-                )}
-              </Tbody>
-            </Table>
-          </Box>
-        )}
-      </Box>
-    </Box>
-  );
-}
-
-function GuildWarLaneStatsPanel({ guild }: { guild: string }) {
-  const query = useGuildWarListQuery(guild);
-  const tooltipBg = useColorModeValue('white', '#1E1E2D');
-  const tooltipBorder = useColorModeValue('#E2E8F0', '#2d2d3d');
-  const tooltipText = useColorModeValue('#1A202C', '#F7FAFC');
-  const axisColor = useColorModeValue('#A0AEC0', '#718096');
-  const cursorFill = useColorModeValue('rgba(0,0,0,0.05)', 'rgba(255,255,255,0.05)');
-
-  if (query.isLoading || query.isError) return null;
-
-  const regs = query.data?.data || [];
-
-  const getCount = (laneValue: string) => regs.filter(r => r.lane === laneValue).length;
-
+  const regs = q.data.data;
+  const cnt = (v: string) => regs.filter(r => r.lane === v).length;
   const data = [
-    { name: 'Top', full: 'Top (Đường Trên)', value: getCount('Top (Đường Trên)'), color: '#F6AD55' },
-    { name: 'Jungle', full: 'Jungle (Đi Rừng)', value: getCount('Jungle (Đi Rừng)'), color: '#68D391' },
-    { name: 'Mid', full: 'Mid (Đường Giữa)', value: getCount('Mid (Đường Giữa)'), color: '#63B3ED' },
-    { name: 'Bot', full: 'Bot (Đường Dưới)', value: getCount('Bot (Đường Dưới)'), color: '#B794F4' }
+    { name: 'TOP', value: cnt('Top (Đường Trên)'), color: '#38bdf8' },
+    { name: 'JGL', value: cnt('Jungle (Đi Rừng)'), color: '#4ade80' },
+    { name: 'MID', value: cnt('Mid (Đường Giữa)'), color: '#f472b6' },
+    { name: 'BOT', value: cnt('Bot (Đường Dưới)'), color: '#a78bfa' },
   ];
 
   return (
-    <Box
-      rounded="2xl"
-      overflow="hidden"
-      shadow="md"
-      bgColor="PanelBoundary"
-      border="1px solid"
-      borderColor="whiteAlpha.100"
-      _light={{ borderColor: 'blackAlpha.100' }}
-    >
-      <Flex
-        align="center"
-        px={5}
-        py={4}
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.100"
-        _light={{ borderColor: 'blackAlpha.100' }}
-      >
-        <Box>
-          <Heading size="sm" fontWeight="700">Thống Kê Vị Trí Đi Đường (Lane)</Heading>
-          <Text fontSize="xs" color="TextSecondary">Tuần {query.data?.week?.split('-W')[1] ?? 'N/A'}</Text>
-        </Box>
-      </Flex>
-      <Box p={4} h="250px" display="flex" alignItems="center" justifyContent="center">
-        {regs.length === 0 ? (
-          <Text color="TextSecondary" fontSize="sm">Chưa có dữ liệu report</Text>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={data}
-              margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
-            >
-              <XAxis dataKey="name" stroke={axisColor} fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke={axisColor} fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-              <Tooltip
-                cursor={{ fill: cursorFill }}
-                contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: '8px', color: tooltipText }}
-                itemStyle={{ color: tooltipText }}
-                formatter={(value: any, name: any, props: any) => [value + ' người', props.payload.full]}
-                labelStyle={{ display: 'none' }}
-              />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </Box>
-      <Flex justify="center" gap={4} pb={4} flexWrap="wrap">
-        {data.map((entry, index) => (
-          <Flex align="center" gap={2} key={index}>
-            <Box w={3} h={3} rounded="sm" bg={entry.color} />
-            <Text fontSize="xs" fontWeight="500">{entry.name} ({entry.value})</Text>
-          </Flex>
-        ))}
-      </Flex>
-    </Box>
+    <div className="h-[240px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+          <XAxis dataKey="name" stroke="#a1a1aa" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+          <YAxis stroke="#a1a1aa" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+          <Tooltip cursor={{ fill: 'rgba(161,161,170,0.1)' }}
+            contentStyle={{ backgroundColor: 'var(--tooltip-bg, #ffffff)', borderColor: 'var(--tooltip-border, #e4e4e7)', borderRadius: '12px', color: 'var(--tooltip-text, #18181b)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+            itemStyle={{ color: 'var(--tooltip-text, #18181b)' }} />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={32}>
+            {data.map((e, i) => <Cell key={i} fill={e.color} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
-function GuildWarRoleStatsPanel({ guild }: { guild: string }) {
-  const query = useGuildWarListQuery(guild);
-  const tooltipBg = useColorModeValue('white', '#1E1E2D');
-  const tooltipBorder = useColorModeValue('#E2E8F0', '#2d2d3d');
-  const tooltipText = useColorModeValue('#1A202C', '#F7FAFC');
+function RoleChart({ guild }: { guild: string }) {
+  const q = useGuildWarListQuery(guild);
+  if (q.isLoading || q.isError || !q.data?.data.length) return <div className="h-[200px] flex items-center justify-center"><EmptyState msg="No data" /></div>;
 
-  if (query.isLoading || query.isError) return null;
-
-  const regs = query.data?.data || [];
-
-  // Đếm động tất cả role (freeform), bỏ qua role rỗng
-  const ROLE_COLORS = ['#FC8181', '#63B3ED', '#68D391', '#F6AD55', '#B794F4', '#F687B3', '#76E4F7', '#FBD38D'];
-  const roleCounts = new Map<string, number>();
-  regs.forEach(r => {
-    const role = (r.role || '').trim();
-    if (role) roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
-  });
-  const data = Array.from(roleCounts.entries()).map(([name, value], idx) => ({
-    name,
-    value,
-    color: ROLE_COLORS[idx % ROLE_COLORS.length],
-  }));
+  const COLORS = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+  const counts = new Map<string, number>();
+  q.data.data.forEach(r => { const role = (r.role || '').trim(); if (role) counts.set(role, (counts.get(role) || 0) + 1); });
+  const data = Array.from(counts.entries()).map(([name, value], i) => ({ name, value, color: COLORS[i % COLORS.length] }));
 
   return (
-    <Box
-      rounded="2xl"
-      overflow="hidden"
-      shadow="md"
-      bgColor="PanelBoundary"
-      border="1px solid"
-      borderColor="whiteAlpha.100"
-      _light={{ borderColor: 'blackAlpha.100' }}
-    >
-      <Flex
-        align="center"
-        px={5}
-        py={4}
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.100"
-        _light={{ borderColor: 'blackAlpha.100' }}
-      >
-        <Box>
-          <Heading size="sm" fontWeight="700">Thống Kê Vai Trò (Role)</Heading>
-          <Text fontSize="xs" color="TextSecondary">Tuần {query.data?.week?.split('-W')[1] ?? 'N/A'}</Text>
-        </Box>
-      </Flex>
-      <Box p={4} h="250px" display="flex" alignItems="center" justifyContent="center">
-        {data.length === 0 ? (
-          <Text color="TextSecondary" fontSize="sm">Chưa có dữ liệu report</Text>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-                stroke="none"
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: '8px', color: tooltipText }}
-                itemStyle={{ color: tooltipText }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        )}
-      </Box>
-      <Flex justify="center" gap={4} pb={4} flexWrap="wrap">
+    <div className="h-[240px] flex flex-col">
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={4} dataKey="value" stroke="none">
+              {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+            </Pie>
+            <Tooltip
+              contentStyle={{ backgroundColor: 'var(--tooltip-bg, #ffffff)', borderColor: 'var(--tooltip-border, #e4e4e7)', borderRadius: '12px', color: 'var(--tooltip-text, #18181b)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              itemStyle={{ color: 'var(--tooltip-text, #18181b)', fontSize: '13px', fontWeight: 'bold' }}
+              formatter={(value: number | undefined, name: string | undefined) => [`${value ?? 0} thành viên`, name ?? 'Unknown']}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2 px-2">
         {data.map((entry, index) => (
-          <Flex align="center" gap={2} key={index}>
-            <Box w={3} h={3} rounded="full" bg={entry.color} />
-            <Text fontSize="xs" fontWeight="500">{entry.name} ({entry.value})</Text>
-          </Flex>
+          <div key={index} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+            <span className="text-[10px] sm:text-xs text-zinc-600 dark:text-zinc-400 font-medium truncate max-w-[80px]" title={entry.name}>
+              {entry.name}
+            </span>
+          </div>
         ))}
-      </Flex>
-    </Box>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ██  HELPERS
+// ═══════════════════════════════════════════════════════════
+function RoleBadge({ role }: { role?: string }) {
+  if (!role) return null;
+  const lowerRole = role.toLowerCase();
+
+  let colorClass = 'text-zinc-600 border-zinc-300 bg-zinc-100 dark:text-zinc-400 dark:border-zinc-500/30 dark:bg-white/5';
+
+  if (lowerRole.includes('dps')) {
+    colorClass = 'text-red-700 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-400/30 dark:bg-red-400/10';
+  } else if (lowerRole.includes('healer') || lowerRole.includes('buff')) {
+    colorClass = 'text-green-700 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-400/30 dark:bg-green-400/10';
+  } else if (lowerRole.includes('tank')) {
+    colorClass = 'text-blue-700 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-400/30 dark:bg-blue-400/10';
+  } else if (lowerRole.includes('flex')) {
+    colorClass = 'text-purple-700 border-purple-200 bg-purple-50 dark:text-purple-400 dark:border-purple-400/30 dark:bg-purple-400/10';
+  }
+
+  return (
+    <span className={`px-2 py-0.5 border rounded text-[9px] uppercase tracking-widest font-bold ${colorClass}`}>
+      {role}
+    </span>
+  );
+}
+
+function Loader() { return <div className="py-12 flex justify-center"><div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-cyan-400 animate-spin" /></div>; }
+function EmptyState({ msg }: { msg: string }) { return <div className="py-12 flex flex-col items-center opacity-40"><BsMailbox size={32} className="mb-4" /><p className="text-sm font-mono">{msg}</p></div>; }
+
+function LaneSelect({ guildId, weekId, userId, currentLane }: { guildId: string; weekId: string; userId: string; currentLane: string }) {
+  const mut = useUpdateGuildWarLaneMutation();
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <div className="relative inline-block w-full max-w-[140px]">
+      <select
+        value={currentLane}
+        disabled={mut.isLoading || loading}
+        onChange={async (e) => {
+          try {
+            setLoading(true);
+            await mut.mutateAsync({ guild: guildId, weekId, userId, lane: e.target.value });
+          } finally { setLoading(false); }
+        }}
+        className="w-full appearance-none bg-zinc-100/50 hover:bg-zinc-200/80 border border-zinc-200 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500 dark:focus:border-cyan-500 transition-colors cursor-pointer"
+      >
+        <option value="" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">-- Select --</option>
+        <option value="Top (Đường Trên)" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">TOP</option>
+        <option value="Jungle (Đi Rừng)" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">JUNGLE</option>
+        <option value="Mid (Đường Giữa)" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">MID</option>
+        <option value="Bot (Đường Dưới)" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">BOT</option>
+      </select>
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400 dark:text-zinc-500">
+        {loading || mut.isLoading ? <div className="w-3 h-3 border-2 border-t-transparent border-indigo-500 dark:border-cyan-400 rounded-full animate-spin" /> : <FiChevronDown size={14} />}
+      </div>
+    </div>
   );
 }
 
 function NotJoined({ guild }: { guild: string }) {
   const t = view.useTranslations();
-
   return (
-    <Center flexDirection="column" gap={4} h="full" p={10}>
-      <Box
-        p={5}
-        rounded="full"
-        bg="whiteAlpha.100"
-        _light={{ bg: 'blackAlpha.50' }}
-      >
-        <Icon as={BsMailbox} w={12} h={12} color="TextSecondary" />
-      </Box>
-      <Box textAlign="center">
-        <Text fontSize="xl" fontWeight="700" mb={2}>
-          {t.error['not found']}
-        </Text>
-        <Text color="TextSecondary" maxW="360px">
-          {t.error['not found description']}
-        </Text>
-      </Box>
-      <Button
-        variant="action"
-        leftIcon={<FaRobot />}
-        px={8}
-        size="lg"
-        rounded="xl"
-        as="a"
-        href={`${config.inviteUrl}&guild_id=${guild}`}
-        target="_blank"
-        mt={2}
-      >
-        {t.bn.invite}
-      </Button>
-    </Center>
-  );
-}
-
-function LaneSelect({ guildId, weekId, userId, currentLane }: { guildId: string, weekId: string, userId: string, currentLane: string }) {
-  const mutation = useUpdateGuildWarLaneMutation();
-  const toast = useToast();
-
-  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    try {
-      if (!userId) {
-        toast({ title: 'Người dùng không có ID', status: 'error', isClosable: true });
-        return;
-      }
-      await mutation.mutateAsync({ guild: guildId, weekId, userId, lane: e.target.value });
-      toast({
-        title: 'Đã lưu vị trí đi đường',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-      });
-    } catch (err) {
-      toast({
-        title: 'Lưu thất bại',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  return (
-    <Select
-      size="xs"
-      rounded="md"
-      w="120px"
-      value={currentLane}
-      onChange={handleChange}
-      isDisabled={mutation.isLoading}
-      bg={currentLane ? 'whiteAlpha.200' : 'transparent'}
-      _focus={{ bg: 'PanelBoundary' }}
-    >
-      <option value="">-- Trống --</option>
-      <option value="Top (Đường Trên)">Top (Đường Trên)</option>
-      <option value="Jungle (Đi Rừng)">Jungle (Đi Rừng)</option>
-      <option value="Mid (Đường Giữa)">Mid (Đường Giữa)</option>
-      <option value="Bot (Đường Dưới)">Bot (Đường Dưới)</option>
-    </Select>
+    <div className="min-h-[80vh] bg-zinc-50 dark:bg-[#050505] flex items-center justify-center p-6 text-zinc-900 dark:text-white text-center rounded-2xl border border-zinc-200 dark:border-white/10 m-4">
+      <div className="max-w-md">
+        <div className="w-24 h-24 mx-auto mb-8 rounded-full bg-zinc-200 dark:bg-white/5 border border-zinc-300 dark:border-white/10 flex items-center justify-center">
+          <BsMailbox size={32} className="text-zinc-500" />
+        </div>
+        <h2 className="text-3xl font-black tracking-tight mb-4">{t.error['not found']}</h2>
+        <p className="text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">{t.error['not found description']}</p>
+        <a href={`${config.inviteUrl}&guild_id=${guild}`} className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-indigo-600 dark:bg-white text-white dark:text-black font-bold tracking-wide transition-transform hover:scale-105">
+          <FaRobot /> {t.bn.invite}
+        </a>
+      </div>
+    </div>
   );
 }
 

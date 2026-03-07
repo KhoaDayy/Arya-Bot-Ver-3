@@ -1,4 +1,3 @@
-import { FormControl, FormHelperText, Input, SimpleGrid } from '@chakra-ui/react';
 import { Controller, Control } from 'react-hook-form';
 import { CustomFeatures } from '@/config/types';
 import { FieldLabel, SectionCard } from './SharedComponents';
@@ -12,30 +11,29 @@ export function DeadlineConfig({ control }: Props) {
     return (
         <SectionCard
             icon={MdLockClock}
-            iconColor="var(--chakra-colors-red-400)"
+            iconColor="red"
             title="Deadline Đăng Ký"
             description="Sau giờ này vào Chủ Nhật, bot sẽ tự đóng nút đăng ký"
         >
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-                <FormControl>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                     <FieldLabel>Đóng đăng ký lúc (Chủ Nhật)</FieldLabel>
                     <Controller
                         name="signupDeadline"
                         control={control}
                         render={({ field }) => (
-                            <Input
+                            <input
                                 {...field}
                                 type="time"
-                                rounded="xl"
-                                variant="main"
+                                className="w-full h-11 px-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all"
                             />
                         )}
                     />
-                    <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                    <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                         Mặc định 20:00. Bot tự disable nút và gửi thông báo khi đến giờ.
-                    </FormHelperText>
-                </FormControl>
-            </SimpleGrid>
+                    </p>
+                </div>
+            </div>
         </SectionCard>
     );
 }

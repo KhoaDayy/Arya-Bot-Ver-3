@@ -49,8 +49,19 @@ export async function callReturn<T>(url: string, init: ReturnOptions<T>): Promis
 /** throw error if condition matches */
 async function handleError(res: Response, options: Options) {
   if (!res.ok && (options.errorOnFail ?? true)) {
-    const raw = await res.json();
-    throw new Error(raw);
+    let errorMessage = `API Error: ${res.status} ${res.statusText}`;
+    try {
+      const text = await res.text();
+      try {
+        const raw = JSON.parse(text);
+        errorMessage = raw.message || raw.error || JSON.stringify(raw);
+      } catch {
+        errorMessage = text.length > 200 ? text.slice(0, 200) + '...' : text;
+      }
+    } catch {
+      // Ignored
+    }
+    throw new Error(errorMessage);
   }
 }
 

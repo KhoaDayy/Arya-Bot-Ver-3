@@ -1,5 +1,3 @@
-import { Box, Center, Flex, Text, VStack } from '@chakra-ui/layout';
-import { Icon, Image, useFormControl } from '@chakra-ui/react';
 import { ComponentProps } from 'react';
 import Dropzone, { DropzoneOptions } from 'react-dropzone';
 import { FaFile } from 'react-icons/fa';
@@ -31,34 +29,24 @@ export const FilePickerForm: ControlledInput<FilePickerFormProps, File[] | undef
     <FormCard {...control} error={fieldState.error?.message}>
       <Dropzone ref={ref} {...options} onDrop={onChange}>
         {({ getInputProps, getRootProps }) => (
-          <Box
-            bg="InputBackground"
-            border="1px dashed"
-            borderColor="InputBorder"
-            borderRadius="16px"
-            w="100%"
-            p={5}
-            cursor="pointer"
+          <div
+            className="w-full bg-zinc-50 dark:bg-black/20 border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-indigo-400 dark:hover:border-cyan-500 rounded-2xl p-5 cursor-pointer transition-colors"
             {...getRootProps()}
           >
-            <Input input={getInputProps(field)} />
+            <Input input={getInputProps(field as any)} />
             {empty ? (
-              <VStack
-                color="secondaryGray.700"
-                textAlign="center"
-                _dark={{ color: 'secondaryGray.600' }}
-              >
-                <Icon as={MdUpload} w="70px" h="70px" />
-                <Text fontWeight="500">{placeholder ?? 'Upload Files'}</Text>
-              </VStack>
+              <div className="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 text-center gap-2 py-4">
+                <MdUpload className="w-12 h-12 opacity-80" />
+                <span className="font-medium text-sm">{placeholder ?? 'Upload Files'}</span>
+              </div>
             ) : (
-              <Flex direction="column" gap={2}>
+              <div className="flex flex-col gap-3">
                 {(value as File[])?.map((file, i) => (
                   <FilePreview key={i} file={file} />
                 ))}
-              </Flex>
+              </div>
             )}
-          </Box>
+          </div>
         )}
       </Dropzone>
     </FormCard>
@@ -66,31 +54,29 @@ export const FilePickerForm: ControlledInput<FilePickerFormProps, File[] | undef
 };
 
 function Input({ input }: { input: ComponentProps<'input'> }) {
-  const inputProps = useFormControl<HTMLInputElement>(input);
-
-  return <input {...inputProps} />;
+  return <input {...input} />;
 }
 
 function FilePreview({ file }: { file: File }) {
   const url = useFileUrl(file);
 
   return (
-    <Flex direction="row" gap={2} w="full" align="center">
+    <div className="flex flex-row gap-3 w-full items-center p-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-900/50">
       {file.type.startsWith('image/') ? (
-        <Image alt={file.name} maxW="70px" maxH="70px" src={url} rounded="md" />
+        <img alt={file.name} className="max-w-[60px] max-h-[60px] object-cover rounded-lg" src={url} />
       ) : (
-        <Center rounded="2xl" bg="brand.300" w="50px" h="50px">
-          <Icon as={FaFile} color="white" />
-        </Center>
+        <div className="flex items-center justify-center rounded-lg bg-indigo-500 dark:bg-cyan-600 w-[50px] h-[50px] shrink-0 text-white">
+          <FaFile className="w-6 h-6" />
+        </div>
       )}
-      <VStack align="start" flex={1} spacing="3px">
-        <Text fontSize="md" fontWeight="600" color="TextPrimary">
+      <div className="flex flex-col items-start flex-1 min-w-0">
+        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate w-full">
           {file.name}
-        </Text>
-        <Text fontSize="sm" color="TextSecondary">
-          {file.size} bytes
-        </Text>
-      </VStack>
-    </Flex>
+        </span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          {(file.size / 1024).toFixed(1)} KB
+        </span>
+      </div>
+    </div>
   );
 }

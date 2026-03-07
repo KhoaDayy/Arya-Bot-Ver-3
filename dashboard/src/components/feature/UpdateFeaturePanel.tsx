@@ -1,7 +1,4 @@
 import { RiErrorWarningFill as WarningIcon } from 'react-icons/ri';
-import { Box, Flex, Heading, Spacer, Text } from '@chakra-ui/layout';
-import { ButtonGroup, Button, Icon, Badge, HStack } from '@chakra-ui/react';
-import { SlideFade } from '@chakra-ui/react';
 import { FeatureConfig, UseFormRenderResult, CustomFeatures } from '@/config/types';
 import { IoSave } from 'react-icons/io5';
 import { MdOutlineToggleOff } from 'react-icons/md';
@@ -9,6 +6,7 @@ import { useEnableFeatureMutation, useUpdateFeatureMutation } from '@/api/hooks'
 import { Params } from '@/pages/guilds/[guild]/features/[feature]';
 import { feature as view } from '@/config/translations/feature';
 import { useRouter } from 'next/router';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export function UpdateFeaturePanel({
   feature,
@@ -32,108 +30,65 @@ export function UpdateFeaturePanel({
     enableMutation.mutate({ enabled: false, guild, feature: featureId });
   };
 
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
   return (
-    <Flex as="form" onSubmit={result.onSubmit} direction="column" gap={5} w="full" h="full">
-
+    <form onSubmit={result.onSubmit} className="flex flex-col gap-6 w-full h-full relative pb-24">
       {/* ── Feature Hero Header ── */}
-      <Box
-        position="relative"
-        rounded="2xl"
-        overflow="hidden"
-        bg="CardBackground"
-        border="1px solid"
-        borderColor="whiteAlpha.100"
-        _light={{ borderColor: 'blackAlpha.150' }}
-        p={6}
-        boxShadow="normal"
-      >
+      <div className="relative rounded-3xl overflow-hidden bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 p-6 md:p-8 shadow-sm group">
         {/* Decorative accent */}
-        <Box
-          position="absolute"
-          top="-30px"
-          right="-30px"
-          w="140px"
-          h="140px"
-          rounded="full"
-          bg="brand.500"
-          opacity={0.08}
-          pointerEvents="none"
-        />
-        <Box
-          position="absolute"
-          bottom="-20px"
-          left="40%"
-          w="100px"
-          h="100px"
-          rounded="full"
-          bg="purple.500"
-          opacity={0.06}
-          pointerEvents="none"
-        />
+        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl pointer-events-none transition-all duration-500 group-hover:scale-150" />
+        <div className="absolute -bottom-6 left-[40%] w-32 h-32 rounded-full bg-purple-500/10 dark:bg-purple-500/20 blur-3xl pointer-events-none transition-all duration-700 group-hover:-translate-y-4" />
 
-        <Flex
-          direction={{ base: 'column', md: 'row' }}
-          align={{ base: 'flex-start', md: 'center' }}
-          gap={4}
-          position="relative"
-          zIndex={1}
-        >
-          <Flex
-            w="52px"
-            h="52px"
-            rounded="xl"
-            bg="brand.500"
-            bgGradient="linear(135deg, brand.400, brand.600)"
-            align="center"
-            justify="center"
-            fontSize="2xl"
-            flexShrink={0}
-            boxShadow="0 4px 16px rgba(66, 42, 251, 0.4)"
-          >
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-5 md:gap-6 relative z-10">
+          <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-indigo-600 dark:to-indigo-800 flex items-center justify-center text-2xl md:text-3xl text-white flex-shrink-0 shadow-[0_4px_20px_rgba(99,102,241,0.4)]">
             {config.icon}
-          </Flex>
+          </div>
 
-          <Box flex={1}>
-            <HStack gap={2} mb={1} flexWrap="wrap">
-              <Heading fontSize={{ base: 'xl', md: '2xl' }} fontWeight="800">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-zinc-900 dark:text-white truncate">
                 {config.name}
-              </Heading>
-              <Badge
-                colorScheme="green"
-                rounded="full"
-                px={3}
-                py={0.5}
-                fontSize="xs"
-                fontWeight="700"
-              >
-                ● Đang bật
-              </Badge>
-            </HStack>
-            <Text color="TextSecondary" fontSize="sm">
+              </h2>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2" />
+                Đang bật
+              </span>
+            </div>
+            <p className="text-sm md:text-base text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed max-w-2xl">
               {config.description}
-            </Text>
-          </Box>
+            </p>
+          </div>
 
-          <Button
-            variant="danger"
-            isLoading={enableMutation.isLoading}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
+            type="button"
+            disabled={enableMutation.isLoading}
             onClick={onDisable}
-            leftIcon={<Icon as={MdOutlineToggleOff} w={5} h={5} />}
-            size="sm"
-            rounded="xl"
-            flexShrink={0}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 border border-red-200 dark:border-red-500/20 font-bold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 mt-4 md:mt-0"
           >
+            {enableMutation.isLoading ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <MdOutlineToggleOff className="w-5 h-5" />
+            )}
             <view.T text={(e) => e.bn.disable} />
-          </Button>
-        </Flex>
-      </Box>
+          </motion.button>
+        </div>
+      </div>
 
       {/* ── Form Content ── */}
-      {result.component}
+      <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex-1 flex flex-col gap-6">
+        {result.component}
+      </motion.div>
 
       {/* ── Savebar ── */}
       <Savebar isLoading={mutation.isLoading} result={result} />
-    </Flex>
+    </form>
   );
 }
 
@@ -145,61 +100,57 @@ function Savebar({
   isLoading: boolean;
 }) {
   const t = view.useTranslations();
-  const breakpoint = '3sm';
 
   return (
-    <Flex
-      as={SlideFade}
-      in={canSave}
-      bg="CardBackground"
-      rounded="2xl"
-      zIndex="sticky"
-      pos="sticky"
-      bottom={{ base: 2, [breakpoint]: '10px' }}
-      w="full"
-      px={{ base: 3, [breakpoint]: 5 }}
-      py={{ base: 2.5, [breakpoint]: 4 }}
-      shadow="normal"
-      alignItems="center"
-      flexDirection={{ base: 'column', [breakpoint]: 'row' }}
-      gap={{ base: 2, [breakpoint]: 3 }}
-      mt="auto"
-      border="1px solid"
-      borderColor="brand.400"
-      boxShadow="0 0 0 1px rgba(117, 81, 255, 0.3), 0 8px 32px rgba(66, 42, 251, 0.18)"
-    >
-      <HStack gap={2}>
-        <Icon
-          as={WarningIcon}
-          color="orange.400"
-          w="22px"
-          h="22px"
-          flexShrink={0}
-        />
-        <Text fontSize={{ base: 'sm', [breakpoint]: 'md' }} fontWeight="600">
-          {t.unsaved}
-        </Text>
-      </HStack>
-      <Spacer />
-      <ButtonGroup isDisabled={isLoading} size={{ base: 'sm', [breakpoint]: 'md' }} gap={2}>
-        <Button
-          type="submit"
-          variant="action"
-          rounded="xl"
-          leftIcon={<IoSave />}
-          isLoading={isLoading}
-          onClick={onSubmit}
+    <AnimatePresence>
+      {canSave && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.2 }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-32px)] max-w-3xl"
         >
-          {t.bn.save}
-        </Button>
-        <Button
-          rounded="xl"
-          onClick={reset}
-          variant="ghost"
-        >
-          {t.bn.discard}
-        </Button>
-      </ButtonGroup>
-    </Flex>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 bg-white/90 dark:bg-[#111]/90 backdrop-blur-xl border border-indigo-500/30 dark:border-indigo-500/40 shadow-[0_8px_32px_rgba(99,102,241,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-2xl">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center flex-shrink-0 text-orange-500">
+                <WarningIcon className="w-5 h-5" />
+              </div>
+              <p className="text-sm md:text-base font-bold text-zinc-900 dark:text-white truncate">
+                {t.unsaved}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                type="button"
+                disabled={isLoading}
+                onClick={reset}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-bold text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                {t.bn.discard}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                type="button"
+                disabled={isLoading}
+                onClick={onSubmit}
+                className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:shadow-none"
+              >
+                {isLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <IoSave className="w-4 h-4" />
+                )}
+                {t.bn.save}
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

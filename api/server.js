@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { GuildWarRegistration, GuildWarStats, GuildWarConfig, GuildConfig, GuildWarMember, ClubActivityConfig } = require('../db/schemas');
+const { GuildWarRegistration, GuildWarStats, GuildWarConfig, GuildConfig, GuildWarMember, ClubActivityConfig, FacePreset } = require('../db/schemas');
 const { getCurrentWeekId } = require('../services/guildWar');
 
 // ── API Key Auth Middleware ─────────────────────────────────────────────────
@@ -305,6 +305,55 @@ function startDashboardApi(client, clubActivity) {
         } catch (err) {
             console.error(err);
             return res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
+    // --- Community Face API ---
+
+    // GET paginated list of converted face presets
+    app.get('/api/community-faces', async (req, res) => {
+        const page = Math.max(1, parseInt(req.query.page || '1', 10));
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '12', 10)));
+        const skip = (page - 1) * limit;
+        const sortBy = req.query.sortBy || 'newest';
+        const bodyType = req.query.bodyType;
+
+        const sortMap = {
+            newest: { createdAt: -1 },
+            hottest: { 'data.heat_val': -1 },
+            liked: { 'data.like_num': -1 },
+        };
+        const sort = sortMap[sortBy] || sortMap.newest;
+
+        const query = {};
+        if (bodyType !== undefined && bodyType !== '') {
+            query['data.body_type'] = parseInt(bodyType, 10);
+        }
+
+        try {
+            const [presets, total] = await Promise.all([
+                FacePreset.find(query)
+                    .sort(sort)
+                    .skip(skip)
+                    .limit(limit)
+                    .lean(),
+                FacePreset.countDocuments(query),
+            ]);
+
+            return res.json({
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                data: presets.map(p => ({
+                    id: p.id,
+                    createdAt: p.createdAt,
+                    ...p.data,
+                })),
+            });
+        } catch (err) {
+            console.error('[Community-Face API] Error:', err);
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     });
 

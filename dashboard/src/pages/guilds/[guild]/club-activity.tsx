@@ -1,11 +1,9 @@
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import {
-    Box, Flex, Heading, Table, Thead, Tbody, Tr, Th, Td,
-    Badge, Spinner, Text, HStack, Icon, Select, useToast,
-    useColorModeValue, Input, InputGroup, InputLeftElement,
-    IconButton, Button, Tooltip, SimpleGrid, Progress,
-} from '@chakra-ui/react';
-import { BsPeopleFill, BsFillTrophyFill, BsSearch, BsDownload, BsFunnel, BsExclamationTriangleFill, BsLightningChargeFill } from 'react-icons/bs';
+    BsPeopleFill, BsFillTrophyFill, BsSearch, BsDownload, BsFunnel,
+    BsExclamationTriangleFill, BsLightningChargeFill
+} from 'react-icons/bs';
 import { FaSortUp, FaSortDown, FaSort, FaSync, FaCrown, FaShieldAlt, FaStar, FaFire } from 'react-icons/fa';
 import {
     useClubConfigQuery,
@@ -13,10 +11,11 @@ import {
     useClubSnapshotQuery,
     useForceClubFetchMutation,
 } from '@/api/hooks';
-import { useRouter } from 'next/router';
 import { NextPageWithLayout } from '@/pages/_app';
 import getGuildLayout from '@/components/layout/guild/get-guild-layout';
 import type { ClubMemberSnapshot } from '@/config/types/custom-types';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -39,6 +38,22 @@ const ACTIVITY_FILTER_OPTIONS = [
 
 // ─── Position colors ─────────────────────────────────────────────────────────
 
+type ColorDef = { tailwind: string, bg: string, text: string, border: string };
+
+const TAILWIND_COLORS: Record<string, ColorDef> = {
+    yellow: { tailwind: 'yellow', bg: 'bg-yellow-100 dark:bg-yellow-500/10', text: 'text-yellow-700 dark:text-yellow-400', border: 'border-yellow-200 dark:border-yellow-500/20' },
+    cyan: { tailwind: 'cyan', bg: 'bg-cyan-100 dark:bg-cyan-500/10', text: 'text-cyan-700 dark:text-cyan-400', border: 'border-cyan-200 dark:border-cyan-500/20' },
+    purple: { tailwind: 'purple', bg: 'bg-purple-100 dark:bg-purple-500/10', text: 'text-purple-700 dark:text-purple-400', border: 'border-purple-200 dark:border-purple-500/20' },
+    orange: { tailwind: 'orange', bg: 'bg-orange-100 dark:bg-orange-500/10', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-500/20' },
+    blue: { tailwind: 'blue', bg: 'bg-blue-100 dark:bg-blue-500/10', text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-500/20' },
+    gray: { tailwind: 'gray', bg: 'bg-zinc-100 dark:bg-white/5', text: 'text-zinc-700 dark:text-zinc-400', border: 'border-zinc-200 dark:border-white/10' },
+    pink: { tailwind: 'pink', bg: 'bg-pink-100 dark:bg-pink-500/10', text: 'text-pink-700 dark:text-pink-400', border: 'border-pink-200 dark:border-pink-500/20' },
+    teal: { tailwind: 'teal', bg: 'bg-teal-100 dark:bg-teal-500/10', text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-200 dark:border-teal-500/20' },
+    green: { tailwind: 'green', bg: 'bg-green-100 dark:bg-green-500/10', text: 'text-green-700 dark:text-green-400', border: 'border-green-200 dark:border-green-500/20' },
+    red: { tailwind: 'red', bg: 'bg-red-100 dark:bg-red-500/10', text: 'text-red-700 dark:text-red-400', border: 'border-red-200 dark:border-red-500/20' },
+    indigo: { tailwind: 'indigo', bg: 'bg-indigo-100 dark:bg-indigo-500/10', text: 'text-indigo-700 dark:text-indigo-400', border: 'border-indigo-200 dark:border-indigo-500/20' },
+};
+
 const POSITION_COLORS: Record<string, { color: string; icon: React.ElementType; label?: string; priority: number }> = {
     'guild leader': { color: 'yellow', icon: FaCrown, priority: 1 },
     'vice leader': { color: 'cyan', icon: FaStar, priority: 2 },
@@ -49,8 +64,7 @@ const POSITION_COLORS: Record<string, { color: string; icon: React.ElementType; 
     'member': { color: 'gray', icon: BsPeopleFill, priority: 6 },
 };
 
-// Deterministic color for custom roles based on name hash
-const CUSTOM_COLORS = ['pink', 'teal', 'green', 'red', 'linkedin', 'telegram', 'messenger', 'whatsapp'];
+const CUSTOM_COLORS = ['pink', 'teal', 'green', 'red', 'indigo', 'purple', 'cyan', 'blue'];
 function hashColor(name: string): string {
     let hash = 0;
     for (let i = 0; i < name.length; i++) hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
@@ -60,7 +74,6 @@ function hashColor(name: string): string {
 function PositionBadge({ position }: { position: string }) {
     const roles = position.split(',').map(r => r.trim()).filter(Boolean);
 
-    // Sort: fixed roles first by priority, then custom roles alphabetically
     roles.sort((a, b) => {
         const pa = POSITION_COLORS[a.toLowerCase()]?.priority ?? 99;
         const pb = POSITION_COLORS[b.toLowerCase()]?.priority ?? 99;
@@ -69,116 +82,37 @@ function PositionBadge({ position }: { position: string }) {
     });
 
     return (
-        <Flex gap={1} flexWrap="wrap">
+        <div className="flex flex-wrap gap-1">
             {roles.map((role, i) => {
                 const known = POSITION_COLORS[role.toLowerCase()];
-                const color = known?.color ?? hashColor(role);
-                const icon = known?.icon ?? BsFillTrophyFill;
+                const colorCode = known?.color ?? hashColor(role);
+                const colorDef = TAILWIND_COLORS[colorCode] || TAILWIND_COLORS['gray'];
+                const Icon = known?.icon ?? BsFillTrophyFill;
                 const label = known?.label ?? role;
+
                 return (
-                    <Badge
+                    <span
                         key={i}
-                        colorScheme={color}
-                        fontSize="2xs"
-                        rounded="md"
-                        px={2}
-                        py={0.5}
-                        display="flex"
-                        alignItems="center"
-                        gap={1}
-                        w="fit-content"
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${colorDef.bg} ${colorDef.text} ${colorDef.border}`}
                     >
-                        <Icon as={icon} w={2.5} h={2.5} />
+                        <Icon size={10} />
                         {label}
-                    </Badge>
+                    </span>
                 );
             })}
-        </Flex>
+        </div>
     );
 }
 
-// ─── CSV Export ──────────────────────────────────────────────────────────────────
+// ─── Formatting & Export ────────────────────────────────────────────────────────
 
-type SortField = 'nickname' | 'level' | 'week_activity_point' | 'last_week_activity' | 'month_activity' | 'total_activity' | 'week_fund' | 'total_fund';
+type SortField = 'nickname' | 'level' | 'week_activity_point' | 'last_week_activity' | 'total_activity' | 'week_fund' | 'total_fund';
 type SortDir = 'asc' | 'desc' | null;
 
 function fmt(n: number | undefined | null): string {
     if (n == null) return '0';
     return n.toLocaleString('vi-VN');
 }
-
-// ─── Stat Card (matching gw-members pattern) ────────────────────────────────────
-
-function StatCard({ icon, label, value, color }: {
-    icon: React.ElementType;
-    label: string;
-    value: string | number;
-    color: string;
-}) {
-    return (
-        <Box
-            p={4}
-            rounded="2xl"
-            bgColor="PanelBoundary"
-            shadow="md"
-            position="relative"
-            overflow="hidden"
-            transition="transform 0.2s ease, box-shadow 0.2s ease"
-            _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
-        >
-            <Box position="absolute" top={-3} right={-3} w="60px" h="60px" rounded="full" bg={`${color}20`} pointerEvents="none" />
-            <Flex align="center" gap={3}>
-                <Flex w="40px" h="40px" rounded="xl" bg={`${color}20`} align="center" justify="center" flexShrink={0}>
-                    <Icon as={icon} w={4} h={4} color={color} />
-                </Flex>
-                <Box>
-                    <Text fontSize="xs" color="TextSecondary" fontWeight="600" textTransform="uppercase" letterSpacing="wide">{label}</Text>
-                    <Text fontSize="xl" fontWeight="800" lineHeight="shorter">{value}</Text>
-                </Box>
-            </Flex>
-        </Box>
-    );
-}
-
-// ─── Sort Header (matching gw-members pattern) ─────────────────────────────────
-
-function SortHeader({ label, field, sortField, sortDir, onSort, isNumeric }: {
-    label: string;
-    field: SortField;
-    sortField: SortField | null;
-    sortDir: SortDir;
-    onSort: (field: SortField) => void;
-    isNumeric?: boolean;
-}) {
-    const isActive = sortField === field;
-    return (
-        <Th
-            color="TextSecondary"
-            fontSize="xs"
-            textTransform="uppercase"
-            letterSpacing="wider"
-            pb={3}
-            cursor="pointer"
-            userSelect="none"
-            onClick={() => onSort(field)}
-            _hover={{ color: 'TextPrimary' }}
-            transition="color 0.15s ease"
-            isNumeric={isNumeric}
-            whiteSpace="nowrap"
-        >
-            <Flex align="center" gap={1} justify={isNumeric ? 'flex-end' : 'flex-start'}>
-                {label}
-                <Icon
-                    as={isActive ? (sortDir === 'asc' ? FaSortUp : FaSortDown) : FaSort}
-                    w={3}
-                    h={3}
-                    opacity={isActive ? 1 : 0.3}
-                />
-            </Flex>
-        </Th>
-    );
-}
-
 
 function exportCSV(members: ClubMemberSnapshot[], weekId: string) {
     const headers = ['Nickname', 'Level', 'Chức vụ', 'Điểm Tuần', 'Tuần Trước', 'Quỹ Tuần', 'Tổng Cống Hiến', 'Tổng Quỹ'];
@@ -202,6 +136,49 @@ function exportCSV(members: ClubMemberSnapshot[], weekId: string) {
     URL.revokeObjectURL(url);
 }
 
+// ─── Components ─────────────────────────────────────────────────────────────────
+
+function StatCard({ icon: Icon, label, value, bgClass, textClass }: any) {
+    return (
+        <div className="flex flex-col p-5 bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full ${bgClass} opacity-10 pointer-events-none transition-transform group-hover:scale-150 duration-500`} />
+            <div className="flex items-center gap-4 relative z-10 w-full">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bgClass} ${textClass}`}>
+                    <Icon size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-0.5">{label}</p>
+                    <p className="text-2xl font-black text-zinc-900 dark:text-white truncate">{value}</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SortHeader({ label, field, sortField, sortDir, onSort, isNumeric }: {
+    label: string;
+    field: SortField;
+    sortField: SortField | null;
+    sortDir: SortDir;
+    onSort: (field: SortField) => void;
+    isNumeric?: boolean;
+}) {
+    const isActive = sortField === field;
+    return (
+        <th
+            className={`py-4 px-6 text-[11px] font-bold tracking-wider text-zinc-500 dark:text-zinc-400 cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors uppercase ${isNumeric ? 'text-right' : 'text-left'}`}
+            onClick={() => onSort(field)}
+        >
+            <div className={`flex items-center ${isNumeric ? 'justify-end' : 'justify-start'}`}>
+                {label}
+                <span className={`ml-1 inline-block ${isActive ? 'opacity-100 text-indigo-500 mx-0.5' : 'opacity-30'}`}>
+                    {isActive ? (sortDir === 'asc' ? <FaSortUp className="mt-1" /> : <FaSortDown className="mb-1" />) : <FaSort />}
+                </span>
+            </div>
+        </th>
+    );
+}
+
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 
 const ClubActivityPage: NextPageWithLayout = () => {
@@ -213,7 +190,6 @@ const ClubActivityPage: NextPageWithLayout = () => {
     const snapshotQuery = useClubSnapshotQuery(guild, selectedWeek);
 
     const fetchMutation = useForceClubFetchMutation();
-    const toast = useToast();
 
     // ── State ──
     const [search, setSearch] = useState('');
@@ -223,7 +199,15 @@ const ClubActivityPage: NextPageWithLayout = () => {
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [page, setPage] = useState(1);
 
-    const dangerBg = useColorModeValue('red.50', 'rgba(248, 113, 113, 0.06)');
+    const staggerContainer = {
+        hidden: { opacity: 0 },
+        show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+    };
+
+    const fadeInUp = {
+        hidden: { opacity: 0, y: 10 },
+        show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+    };
 
     const snapshot = snapshotQuery.data;
     const allMembers = snapshot?.members ?? [];
@@ -269,7 +253,6 @@ const ClubActivityPage: NextPageWithLayout = () => {
     const totalPages = Math.max(1, Math.ceil(sorted.length / ITEMS_PER_PAGE));
     const paged = sorted.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    // Reset page when filters change
     useMemo(() => setPage(1), [search, filterPosition, filterActivity]);
 
     const handleSort = (field: SortField) => {
@@ -286,9 +269,9 @@ const ClubActivityPage: NextPageWithLayout = () => {
     const handleFetch = async () => {
         try {
             await fetchMutation.mutateAsync({ guild });
-            toast({ title: '✅ Đã cập nhật dữ liệu!', status: 'success', duration: 2500, isClosable: true });
+            toast.success('Đã cập nhật dữ liệu!');
         } catch {
-            toast({ title: '❌ Lỗi khi fetch dữ liệu', status: 'error', duration: 3000, isClosable: true });
+            toast.error('Lỗi khi tải dữ liệu');
         }
     };
 
@@ -299,325 +282,281 @@ const ClubActivityPage: NextPageWithLayout = () => {
         : 0;
     const maxActivity = Math.max(...allMembers.map(m => m.week_activity_point), 1);
 
-    // Not linked
+    if (!guild) {
+        return (
+            <div className="w-full h-screen flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+            </div>
+        );
+    }
+
+    // Not linked state
     if (configQuery.data && !configQuery.data.clubName) {
         return (
-            <Flex direction="column" align="center" justify="center" h="full" gap={5} py={20}>
-                <Icon as={BsExclamationTriangleFill} w={12} h={12} color="orange.400" opacity={0.4} />
-                <Heading size="md" fontWeight="700">Chưa Liên Kết Bang Hội</Heading>
-                <Text color="TextSecondary" textAlign="center" maxW="400px">
-                    Dùng lệnh <Badge colorScheme="purple" fontSize="sm" fontFamily="mono">/guild-setup link</Badge> trong Discord để gắn bang hội cho server này.
-                </Text>
-            </Flex>
+            <div className="w-full h-full flex flex-col items-center justify-center gap-5 py-20 min-h-[60vh]">
+                <BsExclamationTriangleFill size={48} className="text-orange-400 opacity-40" />
+                <h2 className="text-base font-bold text-zinc-900 dark:text-white">Chưa Liên Kết Bang Hội</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center max-w-[400px]">
+                    Dùng lệnh <span className="inline-block px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 font-mono text-xs border border-purple-200 dark:border-purple-500/20">/guild-setup link</span> trong Discord để gắn bang hội cho server này.
+                </p>
+            </div>
         );
     }
 
     return (
-        <Flex direction="column" gap={5}>
-            {/* Stat Cards */}
-            {!snapshotQuery.isLoading && !snapshotQuery.isError && snapshot && (
-                <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-                    <StatCard icon={BsPeopleFill} label="Thành viên" value={snapshot.memberCount} color="var(--chakra-colors-blue-400)" />
-                    <StatCard icon={BsLightningChargeFill} label="TB Điểm/Tuần" value={fmt(avgActivity)} color="var(--chakra-colors-purple-400)" />
-                    <StatCard icon={FaFire} label="Liveness Bang" value={fmt(snapshot.clubLiveness)} color="var(--chakra-colors-orange-400)" />
-                    <StatCard icon={BsExclamationTriangleFill} label="Dưới 1000 điểm" value={`${lowCount} (${((lowCount / (snapshot.memberCount || 1)) * 100).toFixed(0)}%)`} color="var(--chakra-colors-red-400)" />
-                </SimpleGrid>
-            )}
+        <div className="w-full flex-col flex gap-0 text-zinc-900 dark:text-zinc-50 antialiased selection:bg-indigo-500/30">
+            {/* ─── HEADER / HERO ─── */}
+            <div className="border-b border-zinc-200 dark:border-white/10 bg-white dark:bg-transparent z-20">
+                <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 mb-4">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" />
+                            <span className="text-[10px] font-semibold tracking-wider text-indigo-700 dark:text-indigo-300 uppercase">Snapshot Data</span>
+                        </div>
+                        <h1 className="flex flex-col gap-1 text-3xl md:text-4xl font-bold tracking-tight mb-2 text-zinc-900 dark:text-white">
+                            <span>Thống kê điểm danh</span>
+                            <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500 dark:from-yellow-400 dark:to-orange-500">
+                                Cống Hiến Tuần
+                            </span>
+                        </h1>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xl leading-relaxed">
+                            Xem lịch sử cống hiến, điểm năng động hàng tuần của tất cả thành viên trong Bang hội.
+                        </p>
+                    </div>
 
-            {/* Members Table Panel */}
-            <Box
-                rounded="2xl"
-                overflow="hidden"
-                shadow="md"
-                bgColor="PanelBoundary"
-                border="1px solid"
-                borderColor="whiteAlpha.100"
-                _light={{ borderColor: 'blackAlpha.100' }}
-            >
-                {/* Panel Header */}
-                <Flex
-                    align="center"
-                    justify="space-between"
-                    px={5}
-                    py={4}
-                    borderBottom="1px solid"
-                    borderColor="whiteAlpha.100"
-                    _light={{ borderColor: 'blackAlpha.100' }}
-                >
-                    <HStack gap={3}>
-                        <Flex
-                            w="36px" h="36px" rounded="lg"
-                            bg="rgba(59, 130, 246, 0.15)"
-                            _dark={{ bg: 'rgba(96, 165, 250, 0.15)' }}
-                            align="center" justify="center"
-                        >
-                            <Icon as={BsFillTrophyFill} w={4} h={4} color="blue.400" />
-                        </Flex>
-                        <Box>
-                            <Heading size="sm" fontWeight="700">
-                                Cống Hiến {snapshot?.clubName || configQuery.data?.clubName || 'Bang Hội'}
-                            </Heading>
-                            <Text fontSize="xs" color="TextSecondary">
-                                {snapshot?.weekId ? `Tuần ${snapshot.weekId.split('-W')[1]}` : 'Chưa có dữ liệu'}{' · '}
-                                {snapshot?.fetchedAt
-                                    ? new Date(snapshot.fetchedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
-                                    : ''}
-                            </Text>
-                        </Box>
-                    </HStack>
-                    <HStack gap={2}>
-                        <Select
-                            size="sm" rounded="xl" w="140px"
+                    <div className="flex flex-col items-end gap-3">
+                        <select
+                            className="px-4 py-2 rounded-xl bg-white dark:bg-black/40 border border-zinc-200 dark:border-white/10 text-sm focus:outline-none focus:border-indigo-400 text-zinc-900 dark:text-white font-medium cursor-pointer"
                             value={selectedWeek || ''}
                             onChange={e => setSelectedWeek(e.target.value || undefined)}
                         >
-                            <option value="">Mới nhất</option>
+                            <option value="" className="text-zinc-500">Mới nhất (Tuần Hiện Tại)</option>
                             {(snapshotsQuery.data || []).map(w => (
-                                <option key={w.weekId} value={w.weekId}>Tuần {w.weekId.split('-W')[1]}</option>
+                                <option key={w.weekId} value={w.weekId} className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
+                                    Dữ liệu Tuần {w.weekId.split('-W')[1]}
+                                </option>
                             ))}
-                        </Select>
-                        {!snapshotQuery.isLoading && !snapshotQuery.isError && (
-                            <>
-                                <Badge colorScheme="blue" rounded="full" px={3} py={1} fontSize="xs">
-                                    {filtered.length}/{allMembers.length} người
-                                </Badge>
-                                <Tooltip label="Xuất CSV" hasArrow>
-                                    <IconButton
-                                        aria-label="Export CSV"
-                                        icon={<Icon as={BsDownload} />}
-                                        size="sm"
-                                        variant="ghost"
-                                        rounded="lg"
-                                        onClick={() => exportCSV(sorted, snapshot?.weekId || 'latest')}
-                                    />
-                                </Tooltip>
-                                <Tooltip label="Cập nhật dữ liệu" hasArrow>
-                                    <IconButton
-                                        aria-label="Fetch"
-                                        icon={<Icon as={FaSync} />}
-                                        size="sm"
-                                        variant="ghost"
-                                        rounded="lg"
-                                        isLoading={fetchMutation.isLoading}
-                                        onClick={handleFetch}
-                                    />
-                                </Tooltip>
-                            </>
-                        )}
-                    </HStack>
-                </Flex>
+                        </select>
+                        <div className="flex gap-2">
+                            <button onClick={() => exportCSV(sorted, snapshot?.weekId || 'latest')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-zinc-800 shadow-sm text-zinc-700 dark:text-zinc-300 transition-colors duration-150">
+                                <BsDownload size={14} /> Xuất CSV
+                            </button>
+                            <button onClick={handleFetch} disabled={fetchMutation.isLoading} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white border border-indigo-700 hover:bg-indigo-700 shadow-sm transition-colors duration-150 disabled:opacity-50">
+                                <FaSync size={12} className={fetchMutation.isLoading ? 'animate-spin' : ''} />
+                                {fetchMutation.isLoading ? 'Đang tải...' : 'Fetch mới'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                {/* Search & Filter Bar */}
-                <Flex
-                    px={5}
-                    py={3}
-                    gap={3}
-                    borderBottom="1px solid"
-                    borderColor="whiteAlpha.50"
-                    _light={{ borderColor: 'blackAlpha.50' }}
-                    direction={{ base: 'column', md: 'row' }}
-                    align={{ base: 'stretch', md: 'center' }}
-                >
-                    <InputGroup size="sm" maxW={{ md: '280px' }}>
-                        <InputLeftElement pointerEvents="none">
-                            <Icon as={BsSearch} color="TextSecondary" />
-                        </InputLeftElement>
-                        <Input
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Tìm theo tên..."
-                            rounded="xl"
-                            variant="main"
-                        />
-                    </InputGroup>
-                    <HStack gap={2} flex={1}>
-                        <Icon as={BsFunnel} color="TextSecondary" w={3.5} h={3.5} flexShrink={0} />
-                        <Select
-                            size="sm"
-                            rounded="xl"
-                            value={filterPosition}
-                            onChange={e => setFilterPosition(e.target.value)}
-                            placeholder="Tất cả chức vụ"
-                            maxW="180px"
-                        >
-                            {POSITION_OPTIONS.filter(o => o.value).map(o => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </Select>
-                        <Select
-                            size="sm"
-                            rounded="xl"
-                            value={filterActivity}
-                            onChange={e => setFilterActivity(e.target.value)}
-                            maxW="160px"
-                        >
-                            {ACTIVITY_FILTER_OPTIONS.map(o => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </Select>
-                        {(search || filterPosition || filterActivity) && (
-                            <Button
-                                size="xs"
-                                variant="ghost"
-                                colorScheme="red"
-                                onClick={() => { setSearch(''); setFilterPosition(''); setFilterActivity(''); }}
-                                flexShrink={0}
+            <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-8 flex flex-col gap-8">
+                {/* Stat Cards */}
+                {!snapshotQuery.isLoading && !snapshotQuery.isError && snapshot && (
+                    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                        <motion.div variants={fadeInUp}><StatCard icon={BsPeopleFill} label="Thành viên" value={snapshot.memberCount} bgClass="bg-blue-50 dark:bg-blue-500/10" textClass="text-blue-600 dark:text-blue-400" /></motion.div>
+                        <motion.div variants={fadeInUp}><StatCard icon={BsLightningChargeFill} label="TB Điểm/Tuần" value={fmt(avgActivity)} bgClass="bg-purple-50 dark:bg-purple-500/10" textClass="text-purple-600 dark:text-purple-400" /></motion.div>
+                        <motion.div variants={fadeInUp}><StatCard icon={FaFire} label="Liveness Bang" value={fmt(snapshot.clubLiveness)} bgClass="bg-orange-50 dark:bg-orange-500/10" textClass="text-orange-600 dark:text-orange-400" /></motion.div>
+                        <motion.div variants={fadeInUp}><StatCard icon={BsExclamationTriangleFill} label="Dưới 1000 điểm" value={`${lowCount} người (${((lowCount / (snapshot.memberCount || 1)) * 100).toFixed(0)}%)`} bgClass="bg-red-50 dark:bg-red-500/10" textClass="text-red-600 dark:text-red-400" /></motion.div>
+                    </motion.div>
+                )}
+
+                {/* Members Table */}
+                <div className="bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col overflow-hidden">
+                    {/* Panel Header */}
+                    <div className="px-6 py-5 border-b border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10">
+                                <BsFillTrophyFill size={16} />
+                            </div>
+                            <div>
+                                <h2 className="text-base font-semibold text-zinc-900 dark:text-white">
+                                    Cống Hiến {snapshot?.clubName || configQuery.data?.clubName || 'Bang Hội'}
+                                </h2>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                    {snapshot?.weekId ? `Tuần ${snapshot.weekId.split('-W')[1]}` : 'Chưa có dữ liệu'}
+                                    <span className="mx-2 opacity-50">•</span>
+                                    {snapshot?.fetchedAt ? new Date(snapshot.fetchedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : ''}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center">
+                            <span className="px-3 py-1 rounded-full bg-zinc-100 dark:bg-white/5 text-xs font-semibold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-white/10">
+                                {filtered.length} / {allMembers.length} hiển thị
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Search & Filter Bar */}
+                    <div className="px-6 py-4 border-b border-zinc-100 dark:border-white/5 flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-zinc-50/30 dark:bg-white/[0.01]">
+                        <div className="relative w-full md:max-w-xs">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                                <BsSearch size={14} />
+                            </div>
+                            <input
+                                type="text"
+                                className="w-full pl-9 pr-4 py-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-black/40 text-sm focus:outline-none focus:border-indigo-400 focus:shadow-sm dark:focus:border-cyan-500/50 text-zinc-900 dark:text-white placeholder:text-zinc-400"
+                                placeholder="Tìm kiếm tên..."
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-3 flex-1">
+                            <BsFunnel className="text-zinc-400 shrink-0" size={14} />
+                            <select
+                                className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-black/40 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 focus:shadow-sm w-full max-w-[170px] cursor-pointer"
+                                value={filterPosition}
+                                onChange={e => setFilterPosition(e.target.value)}
                             >
-                                Xoá bộ lọc
-                            </Button>
-                        )}
-                    </HStack>
-                </Flex>
+                                <option value="" className="text-zinc-500">Tất cả chức vụ</option>
+                                {POSITION_OPTIONS.filter(o => o.value).map(o => (
+                                    <option key={o.value} value={o.value} className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200">{o.label}</option>
+                                ))}
+                            </select>
 
-                {/* Table */}
-                <Box p={4}>
-                    {snapshotQuery.isLoading ? (
-                        <Flex justify="center" py={8}><Spinner color="blue.400" /></Flex>
-                    ) : snapshotQuery.isError ? (
-                        <Flex justify="center" py={8}><Text color="red.400" fontSize="sm">Lỗi lấy dữ liệu</Text></Flex>
-                    ) : (
-                        <Box overflowX="auto">
-                            <Table variant="unstyled" size="sm">
-                                <Thead>
-                                    <Tr>
-                                        <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3} w="40px">#</Th>
+                            <select
+                                className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-black/40 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 focus:shadow-sm w-full max-w-[150px] cursor-pointer"
+                                value={filterActivity}
+                                onChange={e => setFilterActivity(e.target.value)}
+                            >
+                                {ACTIVITY_FILTER_OPTIONS.map(o => (
+                                    <option key={o.value} value={o.value} className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200">{o.label}</option>
+                                ))}
+                            </select>
+
+                            {(search || filterPosition || filterActivity) && (
+                                <button
+                                    onClick={() => { setSearch(''); setFilterPosition(''); setFilterActivity(''); }}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 ml-auto whitespace-nowrap transition-colors duration-150"
+                                >
+                                    ✕ Bỏ lọc
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Table */}
+                    <div className="flex-1 overflow-x-auto min-h-[400px]">
+                        {snapshotQuery.isLoading ? (
+                            <div className="h-full flex items-center justify-center py-20">
+                                <span className="text-zinc-400 text-sm animate-pulse">Đang tải dữ liệu...</span>
+                            </div>
+                        ) : snapshotQuery.isError ? (
+                            <div className="h-full flex items-center justify-center py-20 text-red-400 text-sm font-medium">Lỗi hệ thống</div>
+                        ) : (
+                            <table className="w-full text-left border-collapse min-w-[900px]">
+                                <thead>
+                                    <tr className="border-b border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-transparent">
+                                        <th className="py-4 px-6 text-[11px] font-bold tracking-wider text-zinc-500 dark:text-zinc-400 w-[50px] text-center">#</th>
                                         <SortHeader label="Nickname" field="nickname" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
-                                        <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3}>Chức vụ</Th>
+                                        <th className="py-4 px-6 text-[11px] font-bold tracking-wider text-zinc-500 dark:text-zinc-400 uppercase">Chức vụ</th>
                                         <SortHeader label="Lv" field="level" sortField={sortField} sortDir={sortDir} onSort={handleSort} isNumeric />
                                         <SortHeader label="Điểm Tuần" field="week_activity_point" sortField={sortField} sortDir={sortDir} onSort={handleSort} isNumeric />
-                                        <Th color="TextSecondary" fontSize="xs" pb={3} w="70px"></Th>
+                                        <th className="py-4 px-4 text-[11px] w-[90px]"></th>
                                         <SortHeader label="Tuần Trước" field="last_week_activity" sortField={sortField} sortDir={sortDir} onSort={handleSort} isNumeric />
                                         <SortHeader label="Quỹ Tuần" field="week_fund" sortField={sortField} sortDir={sortDir} onSort={handleSort} isNumeric />
                                         <SortHeader label="Tổng" field="total_activity" sortField={sortField} sortDir={sortDir} onSort={handleSort} isNumeric />
-                                    </Tr>
-                                </Thead>
-                                <Tbody>
-                                    {paged.map((m, idx) => {
-                                        const rank = (page - 1) * ITEMS_PER_PAGE + idx + 1;
-                                        const isLow = m.week_activity_point < 1000;
-                                        return (
-                                            <Tr
-                                                key={m.pid || idx}
-                                                bg={isLow ? dangerBg : undefined}
-                                                _hover={{ bgColor: 'whiteAlpha.50', _light: { bgColor: 'blackAlpha.50' } }}
-                                                transition="background 0.15s ease"
-                                            >
-                                                <Td py={2.5}>
-                                                    <Text fontSize="xs" fontWeight="700"
-                                                        color={rank <= 3 ? ['yellow.400', 'gray.400', 'orange.400'][rank - 1] : 'TextSecondary'}>
-                                                        {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
-                                                    </Text>
-                                                </Td>
-                                                <Td py={2.5}>
-                                                    <Text fontSize="sm" fontWeight={isLow ? '700' : '600'} color={isLow ? 'red.400' : undefined}>
-                                                        {m.nickname}
-                                                    </Text>
-                                                </Td>
-                                                <Td py={2.5}><PositionBadge position={m.position} /></Td>
-                                                <Td isNumeric py={2.5}>
-                                                    <Badge bg="whiteAlpha.100" _light={{ bg: 'blackAlpha.50' }} rounded="md" px={2} fontSize="xs">
-                                                        {m.level}
-                                                    </Badge>
-                                                </Td>
-                                                <Td isNumeric py={2.5}>
-                                                    <Text fontSize="sm" fontWeight="800" color={isLow ? 'red.400' : 'green.400'}>
-                                                        {fmt(m.week_activity_point)}
-                                                    </Text>
-                                                </Td>
-                                                <Td py={2.5}>
-                                                    <Tooltip label={`${fmt(m.week_activity_point)} / ${fmt(maxActivity)}`} fontSize="xs" rounded="md">
-                                                        <Box w="60px">
-                                                            <Progress
-                                                                value={Math.min((m.week_activity_point / maxActivity) * 100, 100)}
-                                                                size="xs" rounded="full"
-                                                                bg="whiteAlpha.100"
-                                                                sx={{ '& > div': { bg: isLow ? 'red.400' : 'green.400', transition: 'width 0.5s ease' } }}
-                                                                _light={{ bg: 'blackAlpha.100' }}
-                                                            />
-                                                        </Box>
-                                                    </Tooltip>
-                                                </Td>
-                                                <Td isNumeric py={2.5}><Text fontSize="sm" color="TextSecondary">{fmt(m.last_week_activity)}</Text></Td>
-                                                <Td isNumeric py={2.5}><Text fontSize="sm" color="yellow.400" fontWeight="600">{fmt(m.week_fund)}</Text></Td>
-                                                <Td isNumeric py={2.5}><Text fontSize="sm" fontWeight="600">{fmt(m.total_activity)}</Text></Td>
-                                            </Tr>
-                                        );
-                                    })}
-                                    {paged.length === 0 && (
-                                        <Tr>
-                                            <Td colSpan={9} textAlign="center" py={10} color="TextSecondary">
-                                                <Flex direction="column" align="center" gap={2}>
-                                                    <Icon as={BsPeopleFill} w={8} h={8} opacity={0.3} />
-                                                    <Text fontSize="sm">
-                                                        {search || filterPosition || filterActivity
-                                                            ? 'Không tìm thấy thành viên phù hợp'
-                                                            : 'Chưa có dữ liệu snapshot'}
-                                                    </Text>
-                                                </Flex>
-                                            </Td>
-                                        </Tr>
-                                    )}
-                                </Tbody>
-                            </Table>
+                                    </tr>
+                                </thead>
+                                <motion.tbody variants={staggerContainer} initial="hidden" animate="show">
+                                    <AnimatePresence>
+                                        {paged.map((m, idx) => {
+                                            const rank = (page - 1) * ITEMS_PER_PAGE + idx + 1;
+                                            const isLow = m.week_activity_point < 1000;
+                                            const progressPct = Math.min((m.week_activity_point / maxActivity) * 100, 100);
 
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <Flex justify="space-between" align="center" mt={4} px={2}>
-                                    <Text fontSize="xs" color="TextSecondary">
-                                        Trang {page}/{totalPages} · Hiển thị {paged.length}/{sorted.length}
-                                    </Text>
-                                    <HStack gap={1}>
-                                        <Button
-                                            size="xs"
-                                            variant="ghost"
-                                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                                            isDisabled={page <= 1}
-                                        >
-                                            ‹ Trước
-                                        </Button>
-                                        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                                            let p: number;
-                                            if (totalPages <= 5) {
-                                                p = i + 1;
-                                            } else if (page <= 3) {
-                                                p = i + 1;
-                                            } else if (page >= totalPages - 2) {
-                                                p = totalPages - 4 + i;
-                                            } else {
-                                                p = page - 2 + i;
-                                            }
                                             return (
-                                                <Button
-                                                    key={p}
-                                                    size="xs"
-                                                    variant={page === p ? 'solid' : 'ghost'}
-                                                    colorScheme={page === p ? 'blue' : undefined}
-                                                    onClick={() => setPage(p)}
-                                                    rounded="md"
-                                                    minW="28px"
-                                                >
-                                                    {p}
-                                                </Button>
+                                                <motion.tr variants={fadeInUp} layoutId={`club-${m.pid || idx}`} key={m.pid || idx} className={`border-b border-zinc-100 dark:border-white/5 transition-colors duration-150 ${isLow ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : 'hover:bg-zinc-50 dark:hover:bg-white/[0.03]'}`}>
+                                                    <td className="py-3 px-6 text-center">
+                                                        <span className={`text-[13px] font-bold ${rank <= 3 ? ['text-yellow-500', 'text-zinc-400', 'text-amber-600'][rank - 1] : 'text-zinc-400 dark:text-zinc-500'}`}>
+                                                            {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-6">
+                                                        <span className={`text-[14px] ${isLow ? 'font-bold text-red-600 dark:text-red-400' : 'font-semibold text-zinc-900 dark:text-white'}`}>
+                                                            {m.nickname}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-6"><PositionBadge position={m.position} /></td>
+                                                    <td className="py-3 px-6 text-right">
+                                                        <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-bold bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-400 border border-zinc-200 dark:border-white/10">
+                                                            {m.level}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-6 text-right">
+                                                        <span className={`text-[14px] font-black ${isLow ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                                                            {fmt(m.week_activity_point)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <div className="w-[70px] h-1.5 bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden" title={`${fmt(m.week_activity_point)} / ${fmt(maxActivity)}`}>
+                                                            <div
+                                                                className={`h-full transition-all duration-500 ${isLow ? 'bg-red-500' : 'bg-emerald-500'}`}
+                                                                style={{ width: `${progressPct}%` }}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-6 text-right text-sm text-zinc-500 dark:text-zinc-400">{fmt(m.last_week_activity)}</td>
+                                                    <td className="py-3 px-6 text-right text-sm font-bold text-amber-500 dark:text-amber-400">{fmt(m.week_fund)}</td>
+                                                    <td className="py-3 px-6 text-right text-sm font-semibold text-zinc-700 dark:text-zinc-300">{fmt(m.total_activity)}</td>
+                                                </motion.tr>
                                             );
                                         })}
-                                        <Button
-                                            size="xs"
-                                            variant="ghost"
-                                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                            isDisabled={page >= totalPages}
+                                    </AnimatePresence>
+                                    {paged.length === 0 && (
+                                        <tr>
+                                            <td colSpan={9} className="py-20 text-center">
+                                                <div className="flex flex-col items-center justify-center gap-4 text-zinc-400">
+                                                    <BsPeopleFill size={32} className="opacity-30" />
+                                                    <span className="text-sm font-medium">
+                                                        {search || filterPosition || filterActivity ? 'Không tìm thấy kết quả phù hợp.' : 'Chưa có dữ liệu snapshot nào.'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </motion.tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="px-6 py-4 border-t border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.01] flex items-center justify-between">
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Trang {page} / {totalPages} — Hiển thị {paged.length} dòng</span>
+                            <div className="flex items-center gap-1.5">
+                                <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors duration-150">
+                                    ← Trước
+                                </button>
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum: number;
+                                    if (totalPages <= 5) pageNum = i + 1;
+                                    else if (page <= 3) pageNum = i + 1;
+                                    else if (page >= totalPages - 2) pageNum = totalPages - 4 + i;
+                                    else pageNum = page - 2 + i;
+
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setPage(pageNum)}
+                                            className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center transition-colors duration-150 ${page === pageNum ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black shadow-md' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10'}`}
                                         >
-                                            Sau ›
-                                        </Button>
-                                    </HStack>
-                                </Flex>
-                            )}
-                        </Box>
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                                <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors duration-150">
+                                    Sau →
+                                </button>
+                            </div>
+                        </div>
                     )}
-                </Box>
-            </Box>
-        </Flex>
+                </div>
+            </div>
+        </div>
     );
 };
 
-ClubActivityPage.getLayout = (c) => getGuildLayout({ children: c, back: true });
+ClubActivityPage.getLayout = (c: any) => getGuildLayout({ children: c, back: true });
 export default ClubActivityPage;

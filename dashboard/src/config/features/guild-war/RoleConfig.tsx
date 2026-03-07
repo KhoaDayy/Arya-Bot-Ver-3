@@ -1,4 +1,3 @@
-import { FormControl, FormHelperText, Select, SimpleGrid } from '@chakra-ui/react';
 import { Controller, Control } from 'react-hook-form';
 import { CustomFeatures } from '@/config/types';
 import { FieldLabel, SectionCard } from './SharedComponents';
@@ -14,43 +13,53 @@ export function RoleConfig({ control, roles }: Props) {
     return (
         <SectionCard
             icon={BsShieldFill}
-            iconColor="var(--chakra-colors-purple-400)"
+            iconColor="purple"
             title="Role Tham Chiến"
             description="Role sẽ được gán cho thành viên báo danh tham gia Guild War"
         >
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-                <FormControl>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                     <FieldLabel>Role Thứ 7</FieldLabel>
                     <Controller
                         name="roleT7"
                         control={control}
                         render={({ field }) => (
-                            <Select {...field} placeholder="Tự động tạo: [GW] Thứ 7" rounded="xl" isDisabled={roles.isLoading}>
+                            <select
+                                {...field}
+                                disabled={roles.isLoading}
+                                className="w-full h-11 pl-4 pr-10 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <option value="">Tự động tạo: [GW] Thứ 7</option>
                                 {roles.data?.map(r => (
                                     <option key={r.id} value={r.id}>@{r.name}</option>
                                 ))}
-                            </Select>
+                            </select>
                         )}
                     />
-                    <FormHelperText fontSize="xs" mt={2} color="TextSecondary">Để trống = bot tự tạo.</FormHelperText>
-                </FormControl>
+                    <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">Để trống = bot tự tạo.</p>
+                </div>
 
-                <FormControl>
+                <div>
                     <FieldLabel>Role Chủ Nhật</FieldLabel>
                     <Controller
                         name="roleCN"
                         control={control}
                         render={({ field }) => (
-                            <Select {...field} placeholder="Tự động tạo: [GW] Chủ Nhật" rounded="xl" isDisabled={roles.isLoading}>
+                            <select
+                                {...field}
+                                disabled={roles.isLoading}
+                                className="w-full h-11 pl-4 pr-10 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <option value="">Tự động tạo: [GW] Chủ Nhật</option>
                                 {roles.data?.map(r => (
                                     <option key={r.id} value={r.id}>@{r.name}</option>
                                 ))}
-                            </Select>
+                            </select>
                         )}
                     />
-                    <FormHelperText fontSize="xs" mt={2} color="TextSecondary">Để trống = bot tự tạo.</FormHelperText>
-                </FormControl>
-            </SimpleGrid>
+                    <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">Để trống = bot tự tạo.</p>
+                </div>
+            </div>
         </SectionCard>
     );
 }

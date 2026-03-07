@@ -1,4 +1,3 @@
-import { Box, Flex, HStack, Image, Text, Button as ChakraButton, Avatar, Badge as ChakraBadge } from '@chakra-ui/react';
 import { useState } from 'react';
 
 const BOT_AVATAR_URL = 'https://cdn.discordapp.com/avatars/1468604087015575840/6665997965b49b30636b086bb80dfc58.png?size=128';
@@ -27,60 +26,50 @@ function DiscordMarkdown({ text }: { text: string }) {
     };
 
     return (
-        <Flex direction="column" gap={0.5}>
+        <div className="flex flex-col gap-0.5">
             {lines.map((line, i) => {
                 const trimmed = line.trim();
                 if (!trimmed) return null;
                 if (trimmed.startsWith('## ')) {
-                    return <Text key={i} fontWeight="800" fontSize="lg" lineHeight="short">{renderInline(trimmed.slice(3))}</Text>;
+                    return <h2 key={i} className="font-extrabold text-lg leading-tight">{renderInline(trimmed.slice(3))}</h2>;
                 }
                 if (trimmed.startsWith('### ')) {
-                    return <Text key={i} fontWeight="700" fontSize="md" lineHeight="short" mt={0.5}>{renderInline(trimmed.slice(4))}</Text>;
+                    return <h3 key={i} className="font-bold text-base leading-tight mt-0.5">{renderInline(trimmed.slice(4))}</h3>;
                 }
                 if (trimmed.startsWith('> ')) {
                     return (
-                        <Box key={i} pl={3} borderLeft="3px solid" borderColor="whiteAlpha.300" my={0.5}>
-                            <Text fontSize="sm" color="whiteAlpha.800">{renderInline(trimmed.slice(2))}</Text>
-                        </Box>
+                        <div key={i} className="pl-3 border-l-4 border-[#4e5058] my-0.5">
+                            <p className="text-sm text-white/80">{renderInline(trimmed.slice(2))}</p>
+                        </div>
                     );
                 }
                 if (trimmed.startsWith('-#')) {
-                    return <Text key={i} fontSize="xs" color="whiteAlpha.500">{trimmed.replace(/^-# ?/, '')}</Text>;
+                    return <p key={i} className="text-xs text-white/50">{trimmed.replace(/^-# ?/, '')}</p>;
                 }
                 // Role mentions
                 if (trimmed.startsWith('@')) {
                     return (
-                        <Text key={i} fontSize="sm">
-                            <Box as="span" bg="rgba(88, 101, 242, 0.3)" color="#c9cdfb" px={1} rounded="sm" cursor="pointer">
+                        <p key={i} className="text-sm">
+                            <span className="bg-[#5865F2]/30 text-[#c9cdfb] px-1 rounded-sm cursor-pointer hover:bg-[#5865F2]/50 transition-colors">
                                 {renderInline(trimmed)}
-                            </Box>
-                        </Text>
+                            </span>
+                        </p>
                     );
                 }
-                return <Text key={i} fontSize="sm">{renderInline(trimmed)}</Text>;
+                return <p key={i} className="text-sm">{renderInline(trimmed)}</p>;
             })}
-        </Flex>
+        </div>
     );
 }
 
 function DayBadge({ label, color }: { label: string; color: string }) {
     return (
-        <Box
-            display="inline-flex"
-            alignItems="center"
-            gap={1}
-            bg={color}
-            color="white"
-            fontSize="2xs"
-            fontWeight="700"
-            px={1.5}
-            py={0.5}
-            rounded="sm"
-            textTransform="uppercase"
-            letterSpacing="wide"
+        <span
+            className="inline-flex items-center gap-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wide"
+            style={{ backgroundColor: color }}
         >
             {label}
-        </Box>
+        </span>
     );
 }
 
@@ -113,229 +102,144 @@ export function DiscordPreview({ form }: { form: any }) {
     const fakeTimestamp = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} ${now.getHours() % 12 || 12}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
 
     return (
-        <Box w="full">
+        <div className="w-full">
             {/* Tab selector */}
-            <HStack gap={1} mb={3}>
+            <div className="flex items-center gap-1 mb-3">
                 {(['poll', 'ping', 'reminder'] as PreviewTab[]).map(tab => (
-                    <ChakraButton
+                    <button
                         key={tab}
-                        size="xs"
-                        rounded="full"
-                        variant={activeTab === tab ? 'solid' : 'ghost'}
-                        colorScheme={activeTab === tab ? 'brand' : 'gray'}
                         onClick={() => setActiveTab(tab)}
-                        fontWeight="600"
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${activeTab === tab
+                                ? 'bg-zinc-200 text-zinc-900 dark:bg-white/10 dark:text-white'
+                                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/5'
+                            }`}
                     >
                         {tab === 'poll' ? '📋 Poll' : tab === 'ping' ? '🚨 Ping' : '⏰ Reminder'}
-                    </ChakraButton>
+                    </button>
                 ))}
-            </HStack>
+            </div>
 
             {/* Discord message container — always dark */}
-            <Box
-                bg="#313338"
-                color="white"
-                rounded="lg"
-                overflow="hidden"
-                border="1px solid"
-                borderColor="#3f4147"
-                px={4}
-                py={3}
-                _hover={{ bg: '#2e3035' }}
-                transition="background 0.15s ease"
-            >
+            <div className="bg-[#313338] text-white rounded-lg overflow-hidden border border-[#3f4147] px-4 py-3 hover:bg-[#2e3035] transition-colors select-none">
                 {/* Message header: avatar + bot name + badge + timestamp */}
-                <Flex gap={3} align="flex-start">
+                <div className="flex gap-3 items-start">
                     {/* Bot avatar */}
-                    <Avatar
+                    <img
                         src={BOT_AVATAR_URL}
-                        name={BOT_NAME}
-                        size="md"
-                        mt={0.5}
-                        flexShrink={0}
+                        alt={BOT_NAME}
+                        className="w-10 h-10 rounded-full mt-0.5 flex-shrink-0 select-none object-cover"
                     />
 
                     {/* Message content area */}
-                    <Box flex={1} minW={0}>
+                    <div className="flex-1 min-w-0">
                         {/* Bot name line */}
-                        <Flex align="center" gap={1.5} mb={1}>
-                            <Text fontWeight="700" fontSize="sm" color="#f2f3f5" cursor="pointer" _hover={{ textDecoration: 'underline' }}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <span className="font-semibold text-[15px] text-[#f2f3f5] hover:underline cursor-pointer tracking-tight">
                                 {BOT_NAME}
-                            </Text>
-                            <Box
-                                bg="#5865F2"
-                                color="white"
-                                fontSize="2xs"
-                                fontWeight="700"
-                                px={1}
-                                py={0}
-                                rounded="sm"
-                                lineHeight="shorter"
-                                display="inline-flex"
-                                alignItems="center"
-                            >
+                            </span>
+                            <span className="bg-[#5865F2] text-white text-[10px] font-bold px-1 rounded-sm flex items-center h-4 leading-none">
                                 APP
-                            </Box>
-                            <Text fontSize="xs" color="#949ba4">
+                            </span>
+                            <span className="text-xs text-[#949ba4] font-medium ml-1">
                                 {fakeTimestamp}
-                            </Text>
-                        </Flex>
+                            </span>
+                        </div>
 
                         {/* Embed */}
-                        <Box
-                            bg="#2b2d31"
-                            rounded="md"
-                            overflow="hidden"
-                            border="1px solid"
-                            borderColor="#232428"
-                            position="relative"
-                            maxW="520px"
-                        >
+                        <div className="bg-[#2b2d31] rounded-md overflow-hidden border border-[#1e1f22] relative max-w-[520px]">
                             {/* Accent color bar */}
-                            <Box
-                                position="absolute"
-                                left={0}
-                                top={0}
-                                bottom={0}
-                                w="4px"
-                                bg={accent}
-                                roundedLeft="md"
+                            <div
+                                className="absolute left-0 top-0 bottom-0 w-1 rounded-l-md"
+                                style={{ backgroundColor: accent }}
                             />
 
-                            <Box pl={5} pr={4} py={3}>
+                            <div className="pl-4 pr-3 py-3">
                                 {activeTab === 'poll' && (
-                                    <Flex direction="column" gap={2}>
+                                    <div className="flex flex-col gap-2">
                                         {/* Banner */}
-                                        <Image
-                                            src={bannerUrl}
-                                            alt="Banner"
-                                            rounded="md"
-                                            maxH="140px"
-                                            w="full"
-                                            objectFit="cover"
-                                            fallback={<Box h="80px" bg="whiteAlpha.100" rounded="md" />}
-                                        />
+                                        <div className="rounded overflow-hidden">
+                                            <img
+                                                src={bannerUrl}
+                                                alt="Banner"
+                                                className="w-full max-h-[140px] object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmIyZDMxIi8+PC9zdmc+'; // Transparent dummy
+                                                    (e.target as HTMLDivElement).style.backgroundColor = 'rgba(255,255,255,0.05)';
+                                                    (e.target as HTMLDivElement).style.minHeight = '80px';
+                                                }}
+                                            />
+                                        </div>
                                         {/* Title */}
-                                        <Text fontWeight="800" fontSize="md" color="white" lineHeight="short">
+                                        <h3 className="font-extrabold text-[15px] text-white leading-tight mt-1">
                                             📢 {pollTitle} — Tuần 10
-                                        </Text>
+                                        </h3>
                                         {/* Schedule row */}
-                                        <Flex align="center" gap={2} flexWrap="wrap" fontSize="sm" color="whiteAlpha.800">
+                                        <div className="flex items-center gap-2 flex-wrap text-sm text-white/80">
                                             <DayBadge label="SAT" color="#5865F2" />
-                                            <Text fontWeight="700">Thứ 7</Text>
-                                            <Box
-                                                as="code"
-                                                bg="#1e1f22"
-                                                px={1.5}
-                                                py={0.5}
-                                                rounded="sm"
-                                                fontSize="xs"
-                                                fontFamily="mono"
-                                            >
+                                            <span className="font-bold">Thứ 7</span>
+                                            <code className="bg-[#1e1f22] px-1.5 py-0.5 rounded text-[11px] font-mono whitespace-pre text-white/90">
                                                 {timeT7}
-                                            </Box>
-                                            <Text mx={1} color="whiteAlpha.400">│</Text>
+                                            </code>
+                                            <span className="mx-0.5 text-white/40">│</span>
                                             <DayBadge label="SUN" color="#ED4245" />
-                                            <Text fontWeight="700">Chủ Nhật</Text>
-                                            <Box
-                                                as="code"
-                                                bg="#1e1f22"
-                                                px={1.5}
-                                                py={0.5}
-                                                rounded="sm"
-                                                fontSize="xs"
-                                                fontFamily="mono"
-                                            >
+                                            <span className="font-bold">Chủ Nhật</span>
+                                            <code className="bg-[#1e1f22] px-1.5 py-0.5 rounded text-[11px] font-mono whitespace-pre text-white/90">
                                                 {timeCN}
-                                            </Box>
-                                        </Flex>
+                                            </code>
+                                        </div>
                                         {/* Deadline */}
                                         {watched.signupDeadline && (
-                                            <Text fontSize="xs" color="whiteAlpha.500">
+                                            <p className="text-xs text-white/50">
                                                 🔒 Đăng ký đóng lúc {watched.signupDeadline} Chủ Nhật
-                                            </Text>
+                                            </p>
                                         )}
-                                        <Box h="1px" bg="whiteAlpha.100" />
+                                        <div className="h-px bg-white/5 my-1" />
                                         {/* Stats row */}
-                                        <Flex align="center" gap={2} flexWrap="wrap" fontSize="sm" color="whiteAlpha.800">
-                                            <Text>👤 Đã báo danh:</Text>
+                                        <div className="flex items-center gap-2 flex-wrap text-sm text-white/80">
+                                            <span>👤 Đã báo danh:</span>
                                             <DayBadge label="SAT" color="#5865F2" />
-                                            <Text>T7 <strong>1</strong></Text>
+                                            <span>T7 <strong>1</strong></span>
                                             <DayBadge label="SUN" color="#ED4245" />
-                                            <Text>CN <strong>1</strong></Text>
-                                            <Text>⭐ Cả <strong>2</strong> 1</Text>
-                                        </Flex>
+                                            <span>CN <strong>1</strong></span>
+                                            <span>⭐ Cả <strong>2</strong> 1</span>
+                                        </div>
                                         {/* Faux buttons */}
-                                        <HStack gap={2} mt={1} flexWrap="wrap">
-                                            <ChakraButton
-                                                size="xs"
-                                                rounded="md"
-                                                fontWeight="600"
-                                                bg="#5865F2"
-                                                color="white"
-                                                _hover={{ bg: '#4752C4' }}
-                                                pointerEvents="none"
-                                                leftIcon={<DayBadge label="SAT" color="#4752C4" />}
-                                            >
-                                                Thứ 7
-                                            </ChakraButton>
-                                            <ChakraButton
-                                                size="xs"
-                                                rounded="md"
-                                                fontWeight="600"
-                                                bg="#5865F2"
-                                                color="white"
-                                                _hover={{ bg: '#4752C4' }}
-                                                pointerEvents="none"
-                                                leftIcon={<DayBadge label="SUN" color="#4752C4" />}
-                                            >
-                                                Chủ Nhật
-                                            </ChakraButton>
-                                            <ChakraButton
-                                                size="xs"
-                                                rounded="md"
-                                                fontWeight="600"
-                                                bg="#248046"
-                                                color="white"
-                                                _hover={{ bg: '#1a6334' }}
-                                                pointerEvents="none"
-                                            >
+                                        <div className="flex gap-2 mt-2 flex-wrap">
+                                            <button className="h-8 px-3 rounded text-sm font-semibold bg-[#5865F2] hover:bg-[#4752C4] text-white flex items-center gap-2 pointer-events-none transition-colors">
+                                                <DayBadge label="SAT" color="#4752C4" /> Thứ 7
+                                            </button>
+                                            <button className="h-8 px-3 rounded text-sm font-semibold bg-[#5865F2] hover:bg-[#4752C4] text-white flex items-center gap-2 pointer-events-none transition-colors">
+                                                <DayBadge label="SUN" color="#4752C4" /> Chủ Nhật
+                                            </button>
+                                            <button className="h-8 px-3 rounded text-sm font-semibold bg-[#248046] hover:bg-[#1a6334] text-white flex items-center gap-2 pointer-events-none transition-colors">
                                                 🌟 Cả 2 Ngày
-                                            </ChakraButton>
-                                            <ChakraButton
-                                                size="xs"
-                                                rounded="md"
-                                                fontWeight="600"
-                                                bg="#DA373C"
-                                                color="white"
-                                                _hover={{ bg: '#a12d31' }}
-                                                pointerEvents="none"
-                                            >
+                                            </button>
+                                            <button className="h-8 px-3 rounded text-sm font-semibold bg-[#DA373C] hover:bg-[#a12d31] text-white flex items-center gap-2 pointer-events-none transition-colors">
                                                 ❌ Hủy
-                                            </ChakraButton>
-                                        </HStack>
-                                    </Flex>
+                                            </button>
+                                        </div>
+                                    </div>
                                 )}
 
                                 {activeTab === 'ping' && (
-                                    <Box color="white">
+                                    <div className="text-white">
                                         <DiscordMarkdown text={pingText} />
-                                    </Box>
+                                    </div>
                                 )}
 
                                 {activeTab === 'reminder' && (
-                                    <Box color="white">
+                                    <div className="text-white">
                                         <DiscordMarkdown text={reminderText} />
-                                    </Box>
+                                    </div>
                                 )}
-                            </Box>
-                        </Box>
-                    </Box>
-                </Flex>
-            </Box>
-            <Text fontSize="2xs" color="whiteAlpha.400" mt={1.5} fontStyle="italic">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p className="text-[10px] text-white/40 mt-1.5 italic">
                 * Preview gần đúng — trên Discord sẽ khác chút.
-            </Text>
-        </Box>
+            </p>
+        </div>
     );
 }

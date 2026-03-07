@@ -1,15 +1,17 @@
-import { Input, InputProps } from '@chakra-ui/react';
-import { forwardRef } from 'react';
+import { Input } from '@/components/ui/input';
+import { forwardRef, InputHTMLAttributes } from 'react';
 import { FormCard } from './Form';
 import { WithControl } from './types';
 
-export type InputFormProps = WithControl<InputProps>;
+export type InputFormProps = WithControl<InputHTMLAttributes<HTMLInputElement>>;
 
 export const InputForm = forwardRef<HTMLInputElement, InputFormProps>(
-  ({ control, ...props }, ref) => {
+  ({ control, className, ...props }, ref) => {
+    // Remove chakra specific props like variant
+    const { variant, ...rest } = props as any;
     return (
       <FormCard {...control}>
-        <Input variant="main" ref={ref} {...props} />
+        <Input ref={ref} className={className} {...rest} />
       </FormCard>
     );
   }

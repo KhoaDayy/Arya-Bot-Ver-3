@@ -1,4 +1,3 @@
-import { Box, Flex, Icon, Text, Grid, GridItem } from '@chakra-ui/react';
 import { UseFormReturn } from 'react-hook-form';
 import { CustomFeatures } from '@/config/types';
 import { BsPaletteFill } from 'react-icons/bs';
@@ -11,78 +10,38 @@ interface Props {
 
 export function CustomizationPage({ form }: Props) {
     return (
-        <Box
-            rounded="2xl"
-            border="1px solid"
-            borderColor="whiteAlpha.100"
-            _light={{ borderColor: 'blackAlpha.100', bg: 'white' }}
-            bg="navy.800"
-            overflow="hidden"
-        >
+        <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-[#111] overflow-hidden shadow-sm">
             {/* Header */}
-            <Flex
-                align="center"
-                gap={3}
-                px={5}
-                py={4}
-                borderBottom="1px solid"
-                borderColor="whiteAlpha.100"
-                _light={{ borderColor: 'blackAlpha.100', bg: 'gray.50' }}
-                bg="whiteAlpha.50"
-            >
-                <Flex
-                    w="36px"
-                    h="36px"
-                    rounded="lg"
-                    bg="rgba(236, 72, 153, 0.12)"
-                    align="center"
-                    justify="center"
-                    flexShrink={0}
-                >
-                    <Icon as={BsPaletteFill} w={4} h={4} color="var(--chakra-colors-pink-400)" />
-                </Flex>
-                <Box>
-                    <Text fontWeight="700" fontSize="sm" lineHeight="shorter">Tuỳ Chỉnh Giao Diện</Text>
-                    <Text fontSize="xs" color="TextSecondary">Thay đổi hình ảnh, màu sắc, và nội dung tin nhắn Guild War</Text>
-                </Box>
-            </Flex>
+            <div className="flex items-center gap-4 px-5 py-4 border-b border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-pink-100/50 text-pink-600 dark:bg-pink-500/10 dark:text-pink-400">
+                    <BsPaletteFill className="w-5 h-5" />
+                </div>
+                <div>
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight mb-0.5">Tuỳ Chỉnh Giao Diện</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Thay đổi hình ảnh, màu sắc, và nội dung tin nhắn Guild War</p>
+                </div>
+            </div>
 
             {/* Split layout: Left = config, Right = preview */}
-            <Grid
-                templateColumns={{ base: '1fr', lg: '1fr 1fr' }}
-                gap={0}
-            >
+            <div className="grid grid-cols-1 lg:grid-cols-2">
                 {/* Left: Customization form */}
-                <GridItem
-                    px={5}
-                    py={5}
-                    borderRight={{ base: 'none', lg: '1px solid' }}
-                    borderBottom={{ base: '1px solid', lg: 'none' }}
-                    borderColor="whiteAlpha.100"
-                    _light={{ borderColor: 'blackAlpha.100' }}
-                    color="TextPrimary"
-                >
+                <div className="p-5 border-b lg:border-b-0 lg:border-r border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-zinc-100">
                     <CustomizationConfig form={form} />
-                </GridItem>
+                </div>
 
                 {/* Right: Discord preview (sticky) */}
-                <GridItem
-                    px={5}
-                    py={5}
-                    bg="whiteAlpha.25"
-                    _light={{ bg: 'gray.50' }}
-                >
-                    <Box position="sticky" top="80px">
-                        <Flex align="center" gap={2} mb={3}>
-                            <Box w={2} h={2} rounded="full" bg="green.400" />
-                            <Text fontWeight="700" fontSize="sm" color="TextPrimary">
+                <div className="p-5 bg-zinc-50/50 dark:bg-white/5 relative">
+                    <div className="sticky top-20">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <h4 className="font-bold text-sm text-zinc-900 dark:text-white">
                                 Xem trước trên Discord
-                            </Text>
-                        </Flex>
+                            </h4>
+                        </div>
                         <DiscordPreview form={form} />
-                    </Box>
-                </GridItem>
-            </Grid>
-        </Box>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }

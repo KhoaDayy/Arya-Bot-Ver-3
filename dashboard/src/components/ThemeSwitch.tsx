@@ -1,31 +1,22 @@
-import { Button, Icon, useColorMode } from '@chakra-ui/react';
 import { IoMdMoon, IoMdSunny } from 'react-icons/io';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 export function ThemeSwitch({ secondary }: { secondary?: boolean }) {
-  const { colorMode, toggleColorMode } = useColorMode();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
 
   return (
-    <Button
-      variant="no-hover"
-      bg="transparent"
-      p="0px"
-      minW="unset"
-      minH="unset"
-      h="18px"
-      w="max-content"
-      onClick={toggleColorMode}
+    <button
+      className={`p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors ${secondary ? 'text-zinc-400' : 'text-zinc-700 dark:text-zinc-300'}`}
+      onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
       aria-label="Toggle color mode"
     >
-      <Icon
-        me="10px"
-        h="18px"
-        w="18px"
-        color={secondary ? 'gray.400' : 'TextPrimary'}
-        _dark={{
-          color: 'TextPrimary',
-        }}
-        as={colorMode === 'light' ? IoMdMoon : IoMdSunny}
-      />
-    </Button>
+      {theme === 'light' ? <IoMdMoon className="w-[18px] h-[18px]" /> : <IoMdSunny className="w-[18px] h-[18px]" />}
+    </button>
   );
 }

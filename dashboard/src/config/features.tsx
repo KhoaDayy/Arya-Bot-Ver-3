@@ -1,4 +1,3 @@
-import { Icon } from '@chakra-ui/react';
 import { IoHappy } from 'react-icons/io5';
 import { FeaturesConfig } from './types';
 import { provider } from '@/config/translations/provider';
@@ -49,13 +48,13 @@ export const features: FeaturesConfig = {
   guiwar: {
     name: <T text="guiwar" />,
     description: <T text="guiwar description" />,
-    icon: <Icon as={BsListCheck} />,
+    icon: <BsListCheck size={20} />,
     useRender: useGuildWarFeature,
   },
   'face-forum': {
     name: <T text="faceforum" />,
     description: <T text="faceforum description" />,
-    icon: <Icon as={IoHappy} />,
+    icon: <IoHappy size={20} />,
     useRender() {
       return {
         component: <></>,

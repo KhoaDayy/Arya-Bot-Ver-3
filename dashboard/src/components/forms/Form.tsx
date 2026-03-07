@@ -1,11 +1,4 @@
-import {
-  FormControl,
-  FormControlProps,
-  FormErrorMessage,
-  FormLabel,
-} from '@chakra-ui/form-control';
-import { Flex, Spacer, Text } from '@chakra-ui/layout';
-import { ReactNode } from 'react';
+import { HTMLAttributes, ReactNode } from 'react';
 import {
   Controller,
   ControllerProps,
@@ -14,32 +7,27 @@ import {
   UseControllerProps,
 } from 'react-hook-form';
 
-export function Form(props: FormControlProps) {
+export function Form(props: HTMLAttributes<HTMLDivElement> & { isRequired?: boolean; isInvalid?: boolean }) {
+  const { isRequired, isInvalid, children, className, ...rest } = props;
   return (
-    <FormControl
-      as={Flex}
-      direction="column"
-      bg="CardBackground"
-      rounded="3xl"
-      p={5}
-      boxShadow="normal"
-      {...props}
+    <div
+      className={`flex flex-col bg-white dark:bg-[#111] rounded-3xl p-5 shadow-sm border border-zinc-200 dark:border-white/10 ${className || ''}`}
+      {...rest}
     >
-      {props.children}
-    </FormControl>
+      {children}
+    </div>
   );
 }
 
 export type FormCardProps = {
   required?: boolean;
-  baseControl?: FormControlProps;
+  baseControl?: HTMLAttributes<HTMLDivElement>;
   /**
    * Show an error message if not null
    */
   error?: string;
   label?: string | ReactNode;
   description?: string | ReactNode;
-
   children: ReactNode;
 };
 
@@ -53,15 +41,18 @@ export function FormCard({
 }: FormCardProps) {
   return (
     <Form isRequired={required} isInvalid={error != null} {...baseControl}>
-      <FormLabel fontSize={{ base: '16px', md: 'lg' }} fontWeight="medium" mb={0}>
+      <label className="text-base md:text-lg font-medium mb-0 text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
         {label}
-      </FormLabel>
-      <Text fontSize={{ base: 'sm', md: 'md' }} color="TextSecondary">
-        {description}
-      </Text>
-      <Spacer mt={2} />
+        {required && <span className="text-red-500">*</span>}
+      </label>
+      {description && (
+        <span className="text-sm md:text-base text-zinc-500 dark:text-zinc-400 mt-1">
+          {description}
+        </span>
+      )}
+      <div className="mt-2 md:mt-3" />
       {children}
-      <FormErrorMessage>{error}</FormErrorMessage>
+      {error && <span className="text-red-500 text-sm mt-2">{error}</span>}
     </Form>
   );
 }

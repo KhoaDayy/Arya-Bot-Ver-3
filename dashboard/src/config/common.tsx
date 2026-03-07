@@ -1,21 +1,17 @@
-import { Box } from '@chakra-ui/react';
 import Image from 'next/image';
 import { PermissionFlags } from '@/api/discord';
 import { AppConfig } from './types';
 
-const BOT_AVATAR_URL = 'https://cdn.discordapp.com/avatars/1468604087015575840/6665997965b49b30636b086bb80dfc58.png?size=128';
+const BOT_AVATAR_URL = 'https://cdn.discordapp.com/avatars/1468604087015575840/6665997965b49b30636b086bb80dfc58.png?size=256';
 
 const BotIcon = (props: any) => (
-  <Box {...props} w={props.w ?? 5} h={props.h ?? 5} position="relative" overflow="hidden" rounded="full">
-    <Image
+  <div className={`relative overflow-hidden rounded-full ${props.className ?? 'w-5 h-5'}`}>
+    <img
       src={BOT_AVATAR_URL}
       alt="Arya Bot"
-      width={40}
-      height={40}
-      style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '9999px' }}
-      priority
+      className="w-full h-full object-cover rounded-full"
     />
-  </Box>
+  </div>
 );
 
 // User IDs được phép truy cập Dashboard dù không phải Admin server

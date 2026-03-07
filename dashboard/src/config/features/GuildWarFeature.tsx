@@ -1,6 +1,5 @@
 import { CustomFeatures } from '@/config/types';
 import { UseFormRender } from '@/config/types';
-import { Flex } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { useGuildChannelsQuery, useGuildRolesQuery } from '@/api/hooks';
 import { useRouter } from 'next/router';
@@ -79,7 +78,7 @@ export const useGuildWarFeature: UseFormRender<CustomFeatures['guiwar']> = (data
             savedRef.current = JSON.stringify(mergedDefaults);
         },
         component: (
-            <Flex direction="column" gap={5} w="full" id="guiwar-form">
+            <div className="flex flex-col gap-5 w-full" id="guiwar-form">
                 <NotificationChannel control={form.control} channels={channels} />
                 <RoleConfig control={form.control} roles={roles} />
                 <ScheduleConfig control={form.control} />
@@ -87,7 +86,7 @@ export const useGuildWarFeature: UseFormRender<CustomFeatures['guiwar']> = (data
                 <DeadlineConfig control={form.control} />
                 <VoiceChannelConfig control={form.control} channels={channels} />
                 <CustomizationPage form={form} />
-            </Flex>
+            </div>
         ),
     };
 };

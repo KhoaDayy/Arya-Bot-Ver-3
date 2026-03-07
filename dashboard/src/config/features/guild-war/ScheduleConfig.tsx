@@ -1,4 +1,3 @@
-import { FormControl, FormHelperText, Input, SimpleGrid } from '@chakra-ui/react';
 import { Controller, Control } from 'react-hook-form';
 import { CustomFeatures } from '@/config/types';
 import { FieldLabel, SectionCard } from './SharedComponents';
@@ -12,53 +11,65 @@ export function ScheduleConfig({ control }: Props) {
     return (
         <SectionCard
             icon={BsClock}
-            iconColor="var(--chakra-colors-orange-400)"
+            iconColor="orange"
             title="Lịch Thông Báo"
             description="Thời gian bot gửi poll và ping đi đánh"
         >
-            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-                <FormControl>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
                     <FieldLabel required>Gửi POLL (Thứ 6)</FieldLabel>
                     <Controller
                         name="pollTime"
                         control={control}
                         render={({ field }) => (
-                            <Input {...field} type="time" rounded="xl" variant="main" />
+                            <input
+                                {...field}
+                                type="time"
+                                className="w-full h-11 px-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all"
+                            />
                         )}
                     />
-                    <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                    <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                         Bot gửi poll vào Thứ 6 hàng tuần.
-                    </FormHelperText>
-                </FormControl>
+                    </p>
+                </div>
 
-                <FormControl>
+                <div>
                     <FieldLabel>Thời gian bắt đầu Thứ 7</FieldLabel>
                     <Controller
                         name="timeT7"
                         control={control}
                         render={({ field }) => (
-                            <Input {...field} type="time" rounded="xl" variant="main" />
+                            <input
+                                {...field}
+                                type="time"
+                                className="w-full h-11 px-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all"
+                            />
                         )}
                     />
-                    <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                    <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                         Nhắc nhở đi đánh Thứ 7.
-                    </FormHelperText>
-                </FormControl>
+                    </p>
+                </div>
 
-                <FormControl>
+                <div>
                     <FieldLabel>Thời gian bắt đầu Chủ Nhật</FieldLabel>
                     <Controller
                         name="timeCN"
                         control={control}
                         render={({ field }) => (
-                            <Input {...field} type="time" rounded="xl" variant="main" />
+                            <input
+                                {...field}
+                                type="time"
+                                className="w-full h-11 px-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all"
+                            />
                         )}
                     />
-                    <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                    <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                         Nhắc nhở đi đánh Chủ Nhật.
-                    </FormHelperText>
-                </FormControl>
-            </SimpleGrid>
+                    </p>
+                </div>
+            </div>
         </SectionCard>
     );
 }

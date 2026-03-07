@@ -1,47 +1,17 @@
-import {
-    Box,
-    Flex,
-    Heading,
-    SimpleGrid,
-    Table,
-    Thead,
-    Tbody,
-    Tr,
-    Th,
-    Td,
-    Badge,
-    Spinner,
-    Text,
-    HStack,
-    Icon,
-    Select,
-    useToast,
-    useColorModeValue,
-    Input,
-    InputGroup,
-    InputLeftElement,
-    IconButton,
-    Button,
-    Tooltip,
-    Modal,
-    ModalOverlay,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    ModalCloseButton,
-    useDisclosure,
-    FormControl,
-    FormLabel,
-} from '@chakra-ui/react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
-import { BsPeopleFill, BsCalendarCheck, BsSearch, BsDownload, BsFunnel } from 'react-icons/bs';
-import { FaEdit, FaTrash, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
-import { useGwMembersQuery, useUpdateGwMemberMutation, useDeleteGwMemberMutation } from '@/api/hooks';
-import { useRouter } from 'next/router';
-import { NextPageWithLayout } from '@/pages/_app';
-import getGuildLayout from '@/components/layout/guild/get-guild-layout';
 import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/router';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import {
+    BsPeopleFill, BsCalendarCheck, BsSearch, BsDownload, BsFunnel,
+    BsLightningChargeFill
+} from 'react-icons/bs';
+import { FaEdit, FaTrash, FaSortUp, FaSortDown, FaSort, FaRobot } from 'react-icons/fa';
+import { FiExternalLink, FiSettings } from 'react-icons/fi';
+import { useGwMembersQuery, useUpdateGwMemberMutation, useDeleteGwMemberMutation } from '@/api/hooks';
+import getGuildLayout from '@/components/layout/guild/get-guild-layout';
+import { NextPageWithLayout } from '@/pages/_app';
+import { useTheme } from 'next-themes';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -61,144 +31,172 @@ type SortDir = 'asc' | 'desc' | null;
 
 // ─── Stat Card ──────────────────────────────────────────────────────────────────
 
-function StatCard({ icon, label, value, color }: {
-    icon: React.ElementType;
-    label: string;
-    value: string | number;
-    color: string;
-}) {
+function StatCard({ icon: Icon, label, value, colorClass, bgClass, textClass }: any) {
     return (
-        <Box
-            p={4}
-            rounded="2xl"
-            bgColor="PanelBoundary"
-            shadow="md"
-            position="relative"
-            overflow="hidden"
-            transition="transform 0.2s ease, box-shadow 0.2s ease"
-            _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
-        >
-            <Box position="absolute" top={-3} right={-3} w="60px" h="60px" rounded="full" bg={`${color}20`} pointerEvents="none" />
-            <Flex align="center" gap={3}>
-                <Flex w="40px" h="40px" rounded="xl" bg={`${color}20`} align="center" justify="center" flexShrink={0}>
-                    <Icon as={icon} w={4} h={4} color={color} />
-                </Flex>
-                <Box>
-                    <Text fontSize="xs" color="TextSecondary" fontWeight="600" textTransform="uppercase" letterSpacing="wide">{label}</Text>
-                    <Text fontSize="xl" fontWeight="800" lineHeight="shorter">{value}</Text>
-                </Box>
-            </Flex>
-        </Box>
+        <div className="flex flex-col p-5 bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm relative overflow-hidden group">
+            <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full ${bgClass} opacity-10 pointer-events-none transition-transform group-hover:scale-150 duration-500`} />
+            <div className="flex items-center gap-4 relative z-10 w-full">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bgClass} ${textClass}`}>
+                    <Icon size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-0.5">{label}</p>
+                    <p className="text-2xl font-black text-zinc-900 dark:text-white truncate">{value}</p>
+                </div>
+            </div>
+        </div>
     );
 }
 
 // ─── Charts ─────────────────────────────────────────────────────────────────────
 
 function RoleStatsPanel({ members }: { members: any[] }) {
-    const tooltipBg = useColorModeValue('white', '#1E1E2D');
-    const tooltipBorder = useColorModeValue('#E2E8F0', '#2d2d3d');
-    const tooltipText = useColorModeValue('#1A202C', '#F7FAFC');
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+    const tooltipBg = isDark ? '#1E1E2D' : 'white';
+    const tooltipBorder = isDark ? '#2d2d3d' : '#E2E8F0';
+    const tooltipText = isDark ? '#F7FAFC' : '#1A202C';
 
     const getCount = (keyword: string) => members.filter(m => m.role?.toLowerCase().includes(keyword)).length;
 
     const data = [
-        { name: 'Quạt dù công', value: getCount('quạt'), color: '#FC8181' },
-        { name: 'Vô danh', value: getCount('vô danh'), color: '#F6AD55' },
-        { name: 'Song đao', value: getCount('song đao'), color: '#FBD38D' },
-        { name: 'Cửu kiếm', value: getCount('cửu kiếm'), color: '#E53E3E' },
-        { name: 'Flex / 3 chỉ', value: getCount('flex') + getCount('3 chỉ'), color: '#B794F4' },
-        { name: 'Tank', value: getCount('tank'), color: '#63B3ED' },
-        { name: 'Healer', value: getCount('healer'), color: '#68D391' },
+        { name: 'Quạt dù công', value: getCount('quạt'), color: '#f87171' }, // red-400
+        { name: 'Vô danh', value: getCount('vô danh'), color: '#fb923c' }, // orange-400
+        { name: 'Song đao', value: getCount('song đao'), color: '#fbbf24' }, // amber-400
+        { name: 'Cửu kiếm', value: getCount('cửu kiếm'), color: '#ef4444' }, // red-500
+        { name: 'Flex / 3 chỉ', value: getCount('flex') + getCount('3 chỉ'), color: '#a78bfa' }, // purple-400
+        { name: 'Tank', value: getCount('tank'), color: '#38bdf8' }, // sky-400
+        { name: 'Healer', value: getCount('healer'), color: '#4ade80' }, // green-400
     ].filter(d => d.value > 0);
 
     return (
-        <Box rounded="2xl" overflow="hidden" shadow="md" bgColor="PanelBoundary" border="1px solid" borderColor="whiteAlpha.100" _light={{ borderColor: 'blackAlpha.100' }}>
-            <Flex align="center" px={5} py={4} borderBottom="1px solid" borderColor="whiteAlpha.100" _light={{ borderColor: 'blackAlpha.100' }}>
-                <Box>
-                    <Heading size="sm" fontWeight="700">Thống Kê Vai Trò (Role)</Heading>
-                    <Text fontSize="xs" color="TextSecondary">Tổng hợp cố định</Text>
-                </Box>
-            </Flex>
-            <Box p={4} h="220px" display="flex" alignItems="center" justifyContent="center">
+        <div className="bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col h-full">
+            <div className="px-6 py-4 border-b border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Thống Kê Vai Trò (Role)</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Tổng hợp cố định</p>
+            </div>
+            <div className="flex-1 p-6 flex flex-col items-center justify-center relative min-h-[260px]">
                 {data.length === 0 ? (
-                    <Text color="TextSecondary" fontSize="sm">Chưa có dữ liệu</Text>
+                    <p className="text-sm text-zinc-500">Chưa có dữ liệu</p>
                 ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={4} dataKey="value" stroke="none">
-                                {data.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
-                            </Pie>
-                            <RechartsTooltip contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: '8px', color: tooltipText }} itemStyle={{ color: tooltipText }} />
-                        </PieChart>
-                    </ResponsiveContainer>
+                    <>
+                        <div className="absolute inset-0 w-full h-[200px] mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={4} dataKey="value" stroke="none">
+                                        {data.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
+                                    </Pie>
+                                    <RechartsTooltip contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: '8px', color: tooltipText }} itemStyle={{ color: tooltipText }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="mt-auto pt-[210px] flex flex-wrap justify-center gap-3">
+                            {data.map((entry, index) => (
+                                <div key={index} className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                                    <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{entry.name} ({entry.value})</span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
-            </Box>
-            <Flex justify="center" gap={3} pb={4} flexWrap="wrap" px={3}>
-                {data.map((entry, index) => (
-                    <Flex align="center" gap={1.5} key={index}>
-                        <Box w={2.5} h={2.5} rounded="full" bg={entry.color} />
-                        <Text fontSize="xs" fontWeight="500">{entry.name} ({entry.value})</Text>
-                    </Flex>
-                ))}
-            </Flex>
-        </Box>
+            </div>
+        </div>
     );
 }
 
 function LaneStatsPanel({ members }: { members: any[] }) {
-    const tooltipBg = useColorModeValue('white', '#1E1E2D');
-    const tooltipBorder = useColorModeValue('#E2E8F0', '#2d2d3d');
-    const tooltipText = useColorModeValue('#1A202C', '#F7FAFC');
-    const axisColor = useColorModeValue('#A0AEC0', '#718096');
-    const cursorFill = useColorModeValue('rgba(0,0,0,0.05)', 'rgba(255,255,255,0.05)');
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+    const tooltipBg = isDark ? '#1E1E2D' : 'white';
+    const tooltipBorder = isDark ? '#2d2d3d' : '#E2E8F0';
+    const tooltipText = isDark ? '#F7FAFC' : '#1A202C';
+    const axisColor = isDark ? '#718096' : '#A0AEC0';
+    const cursorFill = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
     const getCount = (laneValue: string) => members.filter(m => m.lane === laneValue).length;
     const data = [
-        { name: 'Top', full: 'Top (Đường Trên)', value: getCount('Top (Đường Trên)'), color: '#F6AD55' },
-        { name: 'Jungle', full: 'Jungle (Đi Rừng)', value: getCount('Jungle (Đi Rừng)'), color: '#68D391' },
-        { name: 'Mid', full: 'Mid (Đường Giữa)', value: getCount('Mid (Đường Giữa)'), color: '#63B3ED' },
-        { name: 'Bot', full: 'Bot (Đường Dưới)', value: getCount('Bot (Đường Dưới)'), color: '#B794F4' },
+        { name: 'Top', full: 'Top (Đường Trên)', value: getCount('Top (Đường Trên)'), color: '#38bdf8' },
+        { name: 'Jungle', full: 'Jungle (Đi Rừng)', value: getCount('Jungle (Đi Rừng)'), color: '#4ade80' },
+        { name: 'Mid', full: 'Mid (Đường Giữa)', value: getCount('Mid (Đường Giữa)'), color: '#f472b6' },
+        { name: 'Bot', full: 'Bot (Đường Dưới)', value: getCount('Bot (Đường Dưới)'), color: '#a78bfa' },
     ];
 
     return (
-        <Box rounded="2xl" overflow="hidden" shadow="md" bgColor="PanelBoundary" border="1px solid" borderColor="whiteAlpha.100" _light={{ borderColor: 'blackAlpha.100' }}>
-            <Flex align="center" px={5} py={4} borderBottom="1px solid" borderColor="whiteAlpha.100" _light={{ borderColor: 'blackAlpha.100' }}>
-                <Box>
-                    <Heading size="sm" fontWeight="700">Thống Kê Vị Trí (Lane)</Heading>
-                    <Text fontSize="xs" color="TextSecondary">Tổng hợp cố định</Text>
-                </Box>
-            </Flex>
-            <Box p={4} h="220px" display="flex" alignItems="center" justifyContent="center">
+        <div className="bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col h-full">
+            <div className="px-6 py-4 border-b border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Thống Kê Vị Trí (Lane)</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Tổng hợp cố định</p>
+            </div>
+            <div className="flex-1 p-6 flex flex-col items-center justify-center relative min-h-[260px]">
                 {members.length === 0 ? (
-                    <Text color="TextSecondary" fontSize="sm">Chưa có dữ liệu</Text>
+                    <p className="text-sm text-zinc-500">Chưa có dữ liệu</p>
                 ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={data} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                            <XAxis dataKey="name" stroke={axisColor} fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke={axisColor} fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                            <RechartsTooltip
-                                cursor={{ fill: cursorFill }}
-                                contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: '8px', color: tooltipText }}
-                                itemStyle={{ color: tooltipText }}
-                                formatter={(value: any, _name: any, props: any) => [value + ' người', props.payload.full]}
-                                labelStyle={{ display: 'none' }}
-                            />
-                            <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                                {data.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <>
+                        <div className="absolute inset-0 w-full h-[200px] mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={data} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                                    <XAxis dataKey="name" stroke={axisColor} fontSize={10} tickLine={false} axisLine={false} />
+                                    <YAxis stroke={axisColor} fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                                    <RechartsTooltip
+                                        cursor={{ fill: cursorFill }}
+                                        contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: '8px', color: tooltipText }}
+                                        itemStyle={{ color: tooltipText }}
+                                        formatter={(value: any, _name: any, props: any) => [value + ' người', props.payload.full]}
+                                        labelStyle={{ display: 'none' }}
+                                    />
+                                    <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                                        {data.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="mt-auto pt-[210px] flex flex-wrap justify-center gap-4">
+                            {data.map((entry, index) => (
+                                <div key={index} className="flex items-center gap-1.5">
+                                    <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                                    <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{entry.name} ({entry.value})</span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
-            </Box>
-            <Flex justify="center" gap={4} pb={4} flexWrap="wrap">
-                {data.map((entry, index) => (
-                    <Flex align="center" gap={2} key={index}>
-                        <Box w={3} h={3} rounded="sm" bg={entry.color} />
-                        <Text fontSize="xs" fontWeight="500">{entry.name} ({entry.value})</Text>
-                    </Flex>
-                ))}
-            </Flex>
-        </Box>
+            </div>
+        </div>
+    );
+}
+
+// ─── Modal Implementation ───────────────────────────────────────────────────────
+
+function Modal({ isOpen, onClose, title, children, footer, size = 'md' }: any) {
+    if (!isOpen) return null;
+
+    const sizeClasses = {
+        sm: 'max-w-sm',
+        md: 'max-w-md',
+        lg: 'max-w-lg',
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <div className={`relative w-full ${sizeClasses[size as keyof typeof sizeClasses]} bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden`}>
+                <div className="px-6 py-4 border-b border-zinc-100 dark:border-white/5 flex justify-between items-center bg-zinc-50 dark:bg-white/[0.02]">
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{title}</h3>
+                    <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
+                        ✕
+                    </button>
+                </div>
+                <div className="p-6">
+                    {children}
+                </div>
+                {footer && (
+                    <div className="px-6 py-4 border-t border-zinc-100 dark:border-white/5 flex justify-end gap-3 bg-zinc-50 dark:bg-white/[0.02]">
+                        {footer}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -210,11 +208,10 @@ function EditMemberModal({ isOpen, onClose, member, guildId }: {
     member: any;
     guildId: string;
 }) {
-    const toast = useToast();
     const mutation = useUpdateGwMemberMutation();
-    const [ingameName, setIngameName] = useState(member?.ingameName || '');
-    const [role, setRole] = useState(member?.role || '');
-    const [lane, setLane] = useState(member?.lane || '');
+    const [ingameName, setIngameName] = useState('');
+    const [role, setRole] = useState('');
+    const [lane, setLane] = useState('');
 
     // Sync state when member changes
     const handleOpen = useCallback(() => {
@@ -225,10 +222,8 @@ function EditMemberModal({ isOpen, onClose, member, guildId }: {
         }
     }, [member]);
 
-    // Call handleOpen when modal opens
     if (isOpen && member) {
-        // Using a trick: check if current state differs from member
-        if (ingameName !== (member.ingameName || '') && !mutation.isLoading) {
+        if (ingameName !== (member.ingameName || '') && !mutation.isLoading && ingameName === '') {
             handleOpen();
         }
     }
@@ -240,67 +235,67 @@ function EditMemberModal({ isOpen, onClose, member, guildId }: {
                 userId: member.userId,
                 data: { ingameName, role, lane }
             });
-            toast({ title: 'Đã cập nhật thành viên', status: 'success', duration: 2000, isClosable: true });
             onClose();
+            // Reset local state after success
+            setIngameName('');
         } catch {
-            toast({ title: 'Lưu thất bại', status: 'error', duration: 3000, isClosable: true });
+            console.error('Update failed');
         }
     };
 
+    const handleCancel = () => {
+        setIngameName('');
+        onClose();
+    }
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} isCentered>
-            <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
-            <ModalContent bg="CardBackground" rounded="2xl" mx={4}>
-                <ModalHeader fontSize="md" fontWeight="700">
-                    Chỉnh sửa — {member?.username}
-                </ModalHeader>
-                <ModalCloseButton />
-                <ModalBody pb={4}>
-                    <Flex direction="column" gap={4}>
-                        <FormControl>
-                            <FormLabel fontSize="sm" fontWeight="600">Tên Ingame</FormLabel>
-                            <Input
-                                value={ingameName}
-                                onChange={e => setIngameName(e.target.value)}
-                                placeholder="Nhập tên trong game"
-                                rounded="xl"
-                                variant="main"
-                                size="sm"
-                            />
-                        </FormControl>
-                        <FormControl>
-                            <FormLabel fontSize="sm" fontWeight="600">Vai trò (Role)</FormLabel>
-                            <Input
-                                value={role}
-                                onChange={e => setRole(e.target.value)}
-                                placeholder="VD: DPS - Cửu kiếm"
-                                rounded="xl"
-                                variant="main"
-                                size="sm"
-                            />
-                        </FormControl>
-                        <FormControl>
-                            <FormLabel fontSize="sm" fontWeight="600">Vị trí (Lane)</FormLabel>
-                            <Select
-                                value={lane}
-                                onChange={e => setLane(e.target.value)}
-                                rounded="xl"
-                                size="sm"
-                            >
-                                {LANE_OPTIONS.map(l => (
-                                    <option key={l} value={l}>{l || '-- Chưa chọn --'}</option>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Flex>
-                </ModalBody>
-                <ModalFooter gap={2}>
-                    <Button size="sm" variant="ghost" onClick={onClose}>Hủy</Button>
-                    <Button size="sm" colorScheme="blue" rounded="xl" onClick={handleSave} isLoading={mutation.isLoading}>
-                        Lưu
-                    </Button>
-                </ModalFooter>
-            </ModalContent>
+        <Modal
+            isOpen={isOpen}
+            onClose={handleCancel}
+            title={`Chỉnh sửa — ${member?.username}`}
+            footer={
+                <>
+                    <button onClick={handleCancel} className="px-4 py-2 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
+                        Hủy
+                    </button>
+                    <button onClick={handleSave} disabled={mutation.isLoading} className="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                        {mutation.isLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                    </button>
+                </>
+            }
+        >
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Tên Ingame</label>
+                    <input
+                        value={ingameName}
+                        onChange={e => setIngameName(e.target.value)}
+                        placeholder="Nhập tên trong game"
+                        className="w-full px-4 py-2 rounded-xl bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 text-sm focus:outline-none focus:border-indigo-400 text-zinc-900 dark:text-white"
+                    />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Vai trò (Role)</label>
+                    <input
+                        value={role}
+                        onChange={e => setRole(e.target.value)}
+                        placeholder="VD: DPS - Cửu kiếm"
+                        className="w-full px-4 py-2 rounded-xl bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 text-sm focus:outline-none focus:border-indigo-400 text-zinc-900 dark:text-white"
+                    />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Vị trí (Lane)</label>
+                    <select
+                        value={lane}
+                        onChange={e => setLane(e.target.value)}
+                        className="w-full px-4 py-2 rounded-xl bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 text-sm focus:outline-none focus:border-indigo-400 text-zinc-900 dark:text-white appearance-none"
+                    >
+                        {LANE_OPTIONS.map(l => (
+                            <option key={l} value={l} className="bg-white dark:bg-zinc-800">{l || '-- Chưa chọn --'}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
         </Modal>
     );
 }
@@ -313,40 +308,40 @@ function DeleteMemberModal({ isOpen, onClose, member, guildId }: {
     member: any;
     guildId: string;
 }) {
-    const toast = useToast();
     const mutation = useDeleteGwMemberMutation();
 
     const handleDelete = async () => {
         try {
             await mutation.mutateAsync({ guild: guildId, userId: member.userId });
-            toast({ title: 'Đã xoá thành viên', status: 'success', duration: 2000, isClosable: true });
             onClose();
         } catch {
-            toast({ title: 'Xoá thất bại', status: 'error', duration: 3000, isClosable: true });
+            console.error('Delete failed');
         }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} isCentered size="sm">
-            <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
-            <ModalContent bg="CardBackground" rounded="2xl" mx={4}>
-                <ModalHeader fontSize="md" fontWeight="700">Xác nhận xoá</ModalHeader>
-                <ModalCloseButton />
-                <ModalBody>
-                    <Text fontSize="sm">
-                        Bạn có chắc muốn xoá <strong>{member?.username}</strong> ({member?.ingameName || 'N/A'}) khỏi danh sách thành viên Guild War?
-                    </Text>
-                    <Text fontSize="xs" color="TextSecondary" mt={2}>
-                        Thao tác này không thể hoàn tác. Thành viên sẽ được tự động thêm lại nếu họ đăng ký lại.
-                    </Text>
-                </ModalBody>
-                <ModalFooter gap={2}>
-                    <Button size="sm" variant="ghost" onClick={onClose}>Hủy</Button>
-                    <Button size="sm" colorScheme="red" rounded="xl" onClick={handleDelete} isLoading={mutation.isLoading}>
-                        Xoá
-                    </Button>
-                </ModalFooter>
-            </ModalContent>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Xác nhận xoá"
+            size="sm"
+            footer={
+                <>
+                    <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
+                        Hủy
+                    </button>
+                    <button onClick={handleDelete} disabled={mutation.isLoading} className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors">
+                        {mutation.isLoading ? 'Đang xoá...' : 'Xác nhận xoá'}
+                    </button>
+                </>
+            }
+        >
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                Bạn có chắc muốn xoá <strong className="text-zinc-900 dark:text-white">{member?.username}</strong> ({member?.ingameName || 'N/A'}) khỏi hệ thống?
+            </p>
+            <p className="text-xs text-red-500/80 dark:text-red-400/80 mt-3 bg-red-50 dark:bg-red-500/10 p-3 rounded-lg border border-red-100 dark:border-red-500/20">
+                Thao tác này không thể hoàn tác. Thành viên sẽ được tự động thêm lại nếu họ đăng ký lại ở Discord.
+            </p>
         </Modal>
     );
 }
@@ -377,39 +372,28 @@ function exportCSV(members: any[]) {
     URL.revokeObjectURL(url);
 }
 
-// ─── Sort Header ────────────────────────────────────────────────────────────────
+// ─── Role Badge Component ───────────────────────────────────────────────────────
 
-function SortHeader({ label, field, sortField, sortDir, onSort }: {
-    label: string;
-    field: SortField;
-    sortField: SortField | null;
-    sortDir: SortDir;
-    onSort: (field: SortField) => void;
-}) {
-    const isActive = sortField === field;
+function RoleBadge({ role }: { role: string }) {
+    if (!role) return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-400 border border-zinc-200 dark:border-white/10">N/A</span>;
+
+    const r = role.toLowerCase();
+    let colorClass = "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-white/10 dark:text-zinc-300 dark:border-white/20";
+
+    if (r.includes('quạt') || r.includes('vô danh') || r.includes('song đao') || r.includes('cửu kiếm') || r.includes('dps')) {
+        colorClass = "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20";
+    } else if (r.includes('healer')) {
+        colorClass = "bg-green-50 text-green-600 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20";
+    } else if (r.includes('tank')) {
+        colorClass = "bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20";
+    } else if (r.includes('flex') || r.includes('3 chỉ')) {
+        colorClass = "bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20";
+    }
+
     return (
-        <Th
-            color="TextSecondary"
-            fontSize="xs"
-            textTransform="uppercase"
-            letterSpacing="wider"
-            pb={3}
-            cursor="pointer"
-            userSelect="none"
-            onClick={() => onSort(field)}
-            _hover={{ color: 'TextPrimary' }}
-            transition="color 0.15s ease"
-        >
-            <Flex align="center" gap={1}>
-                {label}
-                <Icon
-                    as={isActive ? (sortDir === 'asc' ? FaSortUp : FaSortDown) : FaSort}
-                    w={3}
-                    h={3}
-                    opacity={isActive ? 1 : 0.3}
-                />
-            </Flex>
-        </Th>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${colorClass}`}>
+            {role}
+        </span>
     );
 }
 
@@ -427,16 +411,27 @@ const GwMembersPage: NextPageWithLayout = () => {
     const [sortField, setSortField] = useState<SortField | null>(null);
     const [sortDir, setSortDir] = useState<SortDir>(null);
     const [page, setPage] = useState(1);
+
+    const staggerContainer = {
+        hidden: { opacity: 0 },
+        show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+    };
+
+    const fadeInUp = {
+        hidden: { opacity: 0, y: 10 },
+        show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+    };
+
+    // Custom Modal State
     const [editMember, setEditMember] = useState<any>(null);
     const [deleteMember, setDeleteMember] = useState<any>(null);
-    const editModal = useDisclosure();
-    const deleteModal = useDisclosure();
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
     // ── Filtering ──
     const filtered = useMemo(() => {
         let result = [...members];
 
-        // Search
         if (search.trim()) {
             const q = search.toLowerCase();
             result = result.filter(m =>
@@ -446,12 +441,10 @@ const GwMembersPage: NextPageWithLayout = () => {
             );
         }
 
-        // Filter role
         if (filterRole) {
             result = result.filter(m => m.role?.toLowerCase().includes(filterRole.toLowerCase()));
         }
 
-        // Filter lane
         if (filterLane) {
             result = result.filter(m => m.lane === filterLane);
         }
@@ -491,12 +484,12 @@ const GwMembersPage: NextPageWithLayout = () => {
 
     const handleEdit = (member: any) => {
         setEditMember(member);
-        editModal.onOpen();
+        setIsEditOpen(true);
     };
 
     const handleDelete = (member: any) => {
         setDeleteMember(member);
-        deleteModal.onOpen();
+        setIsDeleteOpen(true);
     };
 
     // ── Stats ──
@@ -521,346 +514,266 @@ const GwMembersPage: NextPageWithLayout = () => {
         return max > 0 ? `${name} (${max})` : 'N/A';
     }, [members]);
 
-    const roleColorScheme = (role: string) => {
-        const r = role?.toLowerCase() || '';
-        if (r.includes('quạt') || r.includes('vô danh') || r.includes('song đao') || r.includes('cửu kiếm') || r.includes('dps')) return 'red';
-        if (r.includes('healer')) return 'green';
-        if (r.includes('tank')) return 'blue';
-        if (r.includes('flex') || r.includes('3 chỉ')) return 'purple';
-        return 'gray';
+    const SortIcon = ({ field }: { field: SortField }) => {
+        const isActive = sortField === field;
+        if (!isActive) return <FaSort className="opacity-30 inline-block ml-1 mb-0.5" />;
+        return sortDir === 'asc' ? <FaSortUp className="text-indigo-500 inline-block ml-1 mt-1" /> : <FaSortDown className="text-indigo-500 inline-block ml-1 mb-1" />;
     };
 
+    if (!guild) {
+        return (
+            <div className="w-full h-screen flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+            </div>
+        );
+    }
+
     return (
-        <Flex direction="column" gap={5}>
-            {/* Stat Cards */}
-            {!query.isLoading && !query.isError && (
-                <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-                    <StatCard icon={BsPeopleFill} label="Tổng thành viên" value={members.length} color="var(--chakra-colors-blue-400)" />
-                    <StatCard
-                        icon={BsPeopleFill}
-                        label="Có Lane"
-                        value={members.filter(m => m.lane).length}
-                        color="var(--chakra-colors-green-400)"
-                    />
-                    <StatCard
-                        icon={BsPeopleFill}
-                        label="Lane phổ biến"
-                        value={topLane}
-                        color="var(--chakra-colors-orange-400)"
-                    />
-                    <StatCard
-                        icon={BsPeopleFill}
-                        label="Role phổ biến"
-                        value={topRole}
-                        color="var(--chakra-colors-purple-400)"
-                    />
-                </SimpleGrid>
-            )}
+        <div className="w-full flex-col flex gap-0 text-zinc-900 dark:text-zinc-50 antialiased selection:bg-indigo-500/30">
+            {/* ─── HEADER / HERO ─── */}
+            <div className="border-b border-zinc-200 dark:border-white/10 bg-white dark:bg-transparent z-20">
+                <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 mb-4">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" />
+                            <span className="text-[10px] font-semibold tracking-wider text-indigo-700 dark:text-indigo-300 uppercase">Database Connected</span>
+                        </div>
+                        <h1 className="flex flex-col gap-1 text-3xl md:text-4xl font-bold tracking-tight mb-2 text-zinc-900 dark:text-white">
+                            <span>Quản lý hồ sơ</span>
+                            <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-blue-500 dark:from-cyan-400 dark:to-indigo-400">
+                                Thành Viên Guild War
+                            </span>
+                        </h1>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xl leading-relaxed">
+                            Toàn quyền kiểm soát và phân công vị trí cho thành viên. Dữ liệu này được lưu vĩnh viễn cho đến khi bị xóa.
+                        </p>
+                    </div>
 
-            {/* Charts */}
-            {!query.isLoading && !query.isError && members.length > 0 && (
-                <SimpleGrid columns={{ base: 1, lg: 2 }} gap={5}>
-                    <LaneStatsPanel members={members} />
-                    <RoleStatsPanel members={members} />
-                </SimpleGrid>
-            )}
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => exportCSV(sorted)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-zinc-800 shadow-sm text-zinc-700 dark:text-zinc-300 transition-colors duration-150">
+                            <BsDownload size={14} /> Xuất CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-            {/* Members Table */}
-            <Box
-                rounded="2xl"
-                overflow="hidden"
-                shadow="md"
-                bgColor="PanelBoundary"
-                border="1px solid"
-                borderColor="whiteAlpha.100"
-                _light={{ borderColor: 'blackAlpha.100' }}
-            >
-                {/* Panel Header */}
-                <Flex
-                    align="center"
-                    justify="space-between"
-                    px={5}
-                    py={4}
-                    borderBottom="1px solid"
-                    borderColor="whiteAlpha.100"
-                    _light={{ borderColor: 'blackAlpha.100' }}
-                >
-                    <HStack gap={3}>
-                        <Flex
-                            w="36px" h="36px" rounded="lg"
-                            bg="rgba(59, 130, 246, 0.15)"
-                            _dark={{ bg: 'rgba(96, 165, 250, 0.15)' }}
-                            align="center" justify="center"
-                        >
-                            <Icon as={BsPeopleFill} w={4} h={4} color="blue.400" />
-                        </Flex>
-                        <Box>
-                            <Heading size="sm" fontWeight="700">Thành Viên Guild War</Heading>
-                            <Text fontSize="xs" color="TextSecondary">Hồ sơ người chơi lưu vĩnh viễn</Text>
-                        </Box>
-                    </HStack>
-                    <HStack gap={2}>
-                        {!query.isLoading && !query.isError && (
-                            <>
-                                <Badge colorScheme="blue" rounded="full" px={3} py={1} fontSize="xs">
-                                    {filtered.length}/{members.length} người
-                                </Badge>
-                                <Tooltip label="Xuất CSV" hasArrow>
-                                    <IconButton
-                                        aria-label="Export CSV"
-                                        icon={<Icon as={BsDownload} />}
-                                        size="sm"
-                                        variant="ghost"
-                                        rounded="lg"
-                                        onClick={() => exportCSV(sorted)}
-                                    />
-                                </Tooltip>
-                            </>
-                        )}
-                    </HStack>
-                </Flex>
+            <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-8 flex flex-col gap-8">
+                {/* Stat Cards */}
+                {!query.isLoading && !query.isError && (
+                    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                        <motion.div variants={fadeInUp}><StatCard icon={BsPeopleFill} label="Tổng thành viên" value={members.length} bgClass="bg-blue-50 dark:bg-blue-500/10" textClass="text-blue-600 dark:text-blue-400" /></motion.div>
+                        <motion.div variants={fadeInUp}><StatCard icon={BsCalendarCheck} label="Đã xếp Lane" value={members.filter(m => m.lane).length} bgClass="bg-green-50 dark:bg-green-500/10" textClass="text-green-600 dark:text-green-400" /></motion.div>
+                        <motion.div variants={fadeInUp}><StatCard icon={FaRobot} label="Lane ưu chuộng" value={topLane} bgClass="bg-orange-50 dark:bg-orange-500/10" textClass="text-orange-600 dark:text-orange-400" /></motion.div>
+                        <motion.div variants={fadeInUp}><StatCard icon={BsLightningChargeFill} label="Role sát thủ" value={topRole} bgClass="bg-purple-50 dark:bg-purple-500/10" textClass="text-purple-600 dark:text-purple-400" /></motion.div>
+                    </motion.div>
+                )}
 
-                {/* Search & Filter Bar */}
-                <Flex
-                    px={5}
-                    py={3}
-                    gap={3}
-                    borderBottom="1px solid"
-                    borderColor="whiteAlpha.50"
-                    _light={{ borderColor: 'blackAlpha.50' }}
-                    direction={{ base: 'column', md: 'row' }}
-                    align={{ base: 'stretch', md: 'center' }}
-                >
-                    <InputGroup size="sm" maxW={{ md: '280px' }}>
-                        <InputLeftElement pointerEvents="none">
-                            <Icon as={BsSearch} color="TextSecondary" />
-                        </InputLeftElement>
-                        <Input
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Tìm theo tên, ingame, ID..."
-                            rounded="xl"
-                            variant="main"
-                        />
-                    </InputGroup>
-                    <HStack gap={2} flex={1}>
-                        <Icon as={BsFunnel} color="TextSecondary" w={3.5} h={3.5} flexShrink={0} />
-                        <Select
-                            size="sm"
-                            rounded="xl"
-                            value={filterRole}
-                            onChange={e => setFilterRole(e.target.value)}
-                            placeholder="Tất cả Role"
-                            maxW="180px"
-                        >
-                            {ROLE_OPTIONS.filter(Boolean).map(r => (
-                                <option key={r} value={r}>{r}</option>
-                            ))}
-                        </Select>
-                        <Select
-                            size="sm"
-                            rounded="xl"
-                            value={filterLane}
-                            onChange={e => setFilterLane(e.target.value)}
-                            placeholder="Tất cả Lane"
-                            maxW="180px"
-                        >
-                            {LANE_OPTIONS.filter(Boolean).map(l => (
-                                <option key={l} value={l}>{l}</option>
-                            ))}
-                        </Select>
-                        {(search || filterRole || filterLane) && (
-                            <Button
-                                size="xs"
-                                variant="ghost"
-                                colorScheme="red"
-                                onClick={() => { setSearch(''); setFilterRole(''); setFilterLane(''); }}
-                                flexShrink={0}
+                {/* Charts */}
+                {!query.isLoading && !query.isError && members.length > 0 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                        <LaneStatsPanel members={members} />
+                        <RoleStatsPanel members={members} />
+                    </div>
+                )}
+
+                {/* Members Table */}
+                <div className="bg-white dark:bg-[#111] border border-zinc-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col overflow-hidden">
+                    {/* Panel Header */}
+                    <div className="px-6 py-5 border-b border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10">
+                                <BsPeopleFill size={16} />
+                            </div>
+                            <div>
+                                <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Danh Sách Thành Viên</h2>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Hiện có {filtered.length} người / tổng số {members.length}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Search & Filter Bar */}
+                    <div className="px-6 py-4 border-b border-zinc-100 dark:border-white/5 flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-zinc-50/30 dark:bg-white/[0.01]">
+                        <div className="relative w-full md:max-w-xs">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                                <BsSearch size={14} />
+                            </div>
+                            <input
+                                type="text"
+                                className="w-full pl-9 pr-4 py-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-black/40 text-sm focus:outline-none focus:border-indigo-400 focus:shadow-sm dark:focus:border-cyan-500/50 text-zinc-900 dark:text-white placeholder:text-zinc-400"
+                                placeholder="Tìm kiếm tên discord, ingame, ID..."
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-3 flex-1">
+                            <BsFunnel className="text-zinc-400 shrink-0" size={14} />
+                            <select
+                                className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-black/40 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 focus:shadow-sm w-full max-w-[160px] cursor-pointer"
+                                value={filterRole}
+                                onChange={e => setFilterRole(e.target.value)}
                             >
-                                Xoá bộ lọc
-                            </Button>
-                        )}
-                    </HStack>
-                </Flex>
+                                <option value="" className="text-zinc-500">Tất cả Role</option>
+                                {ROLE_OPTIONS.filter(Boolean).map(r => (
+                                    <option key={r} value={r} className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200">{r}</option>
+                                ))}
+                            </select>
 
-                {/* Table */}
-                <Box p={4}>
-                    {query.isLoading ? (
-                        <Flex justify="center" py={8}><Spinner color="blue.400" /></Flex>
-                    ) : query.isError ? (
-                        <Flex justify="center" py={8}><Text color="red.400" fontSize="sm">Lỗi lấy dữ liệu</Text></Flex>
-                    ) : (
-                        <Box overflowX="auto">
-                            <Table variant="unstyled" size="sm">
-                                <Thead>
-                                    <Tr>
-                                        <SortHeader label="Discord User" field="username" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
-                                        <SortHeader label="Ingame & Vai trò" field="ingameName" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
-                                        <SortHeader label="Vị trí (Lane)" field="lane" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
-                                        <Th color="TextSecondary" fontSize="xs" textTransform="uppercase" letterSpacing="wider" pb={3} w="80px">
-                                            Thao tác
-                                        </Th>
-                                    </Tr>
-                                </Thead>
-                                <Tbody>
-                                    {paged.map((item, idx) => (
-                                        <Tr
-                                            key={idx}
-                                            _hover={{ bgColor: 'whiteAlpha.50', _light: { bgColor: 'blackAlpha.50' } }}
-                                            transition="background 0.15s ease"
-                                        >
-                                            <Td py={2.5}>
-                                                <Flex direction="column" gap={1}>
-                                                    <Text fontSize="sm" fontWeight="600">{item.username}</Text>
-                                                    <Badge colorScheme="purple" variant="subtle" px={2} py={0.1} rounded="md" fontSize="2xs" w="max-content">
-                                                        {item.userId}
-                                                    </Badge>
-                                                </Flex>
-                                            </Td>
-                                            <Td py={2.5}>
-                                                <Flex direction="column" gap={1}>
-                                                    <Text fontSize="sm" fontWeight="600">
-                                                        {item.ingameName || <Text as="span" color="gray.500" fontStyle="italic">Chưa có</Text>}
-                                                    </Text>
-                                                    <Badge
-                                                        w="fit-content"
-                                                        colorScheme={roleColorScheme(item.role)}
-                                                        fontSize="2xs"
-                                                    >
-                                                        {item.role || 'N/A'}
-                                                    </Badge>
-                                                </Flex>
-                                            </Td>
-                                            <Td py={2.5}>
-                                                <Badge
-                                                    colorScheme={item.lane ? 'teal' : 'gray'}
-                                                    variant={item.lane ? 'subtle' : 'outline'}
-                                                    px={2}
-                                                    py={0.5}
-                                                    rounded="md"
-                                                    fontSize="xs"
-                                                >
-                                                    {item.lane || '-- Trống --'}
-                                                </Badge>
-                                            </Td>
-                                            <Td py={2.5}>
-                                                <HStack gap={1}>
-                                                    <Tooltip label="Chỉnh sửa" hasArrow>
-                                                        <IconButton
-                                                            aria-label="Edit"
-                                                            icon={<Icon as={FaEdit} />}
-                                                            size="xs"
-                                                            variant="ghost"
-                                                            colorScheme="blue"
-                                                            onClick={() => handleEdit(item)}
-                                                        />
-                                                    </Tooltip>
-                                                    <Tooltip label="Xoá" hasArrow>
-                                                        <IconButton
-                                                            aria-label="Delete"
-                                                            icon={<Icon as={FaTrash} />}
-                                                            size="xs"
-                                                            variant="ghost"
-                                                            colorScheme="red"
-                                                            onClick={() => handleDelete(item)}
-                                                        />
-                                                    </Tooltip>
-                                                </HStack>
-                                            </Td>
-                                        </Tr>
-                                    ))}
-                                    {paged.length === 0 && (
-                                        <Tr>
-                                            <Td colSpan={4} textAlign="center" py={10} color="TextSecondary">
-                                                <Flex direction="column" align="center" gap={2}>
-                                                    <Icon as={BsCalendarCheck} w={8} h={8} opacity={0.3} />
-                                                    <Text fontSize="sm">
-                                                        {search || filterRole || filterLane
-                                                            ? 'Không tìm thấy thành viên phù hợp'
-                                                            : 'Chưa có ai đăng ký tài khoản'}
-                                                    </Text>
-                                                </Flex>
-                                            </Td>
-                                        </Tr>
-                                    )}
-                                </Tbody>
-                            </Table>
+                            <select
+                                className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-black/40 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 focus:shadow-sm w-full max-w-[170px] cursor-pointer"
+                                value={filterLane}
+                                onChange={e => setFilterLane(e.target.value)}
+                            >
+                                <option value="" className="text-zinc-500">Tất cả Lane</option>
+                                {LANE_OPTIONS.filter(Boolean).map(r => (
+                                    <option key={r} value={r} className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200">{r}</option>
+                                ))}
+                            </select>
 
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <Flex justify="space-between" align="center" mt={4} px={2}>
-                                    <Text fontSize="xs" color="TextSecondary">
-                                        Trang {page}/{totalPages} · Hiển thị {paged.length}/{sorted.length}
-                                    </Text>
-                                    <HStack gap={1}>
-                                        <Button
-                                            size="xs"
-                                            variant="ghost"
-                                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                                            isDisabled={page <= 1}
-                                        >
-                                            ← Trước
-                                        </Button>
-                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                            let pageNum: number;
-                                            if (totalPages <= 5) {
-                                                pageNum = i + 1;
-                                            } else if (page <= 3) {
-                                                pageNum = i + 1;
-                                            } else if (page >= totalPages - 2) {
-                                                pageNum = totalPages - 4 + i;
-                                            } else {
-                                                pageNum = page - 2 + i;
-                                            }
-                                            return (
-                                                <Button
-                                                    key={pageNum}
-                                                    size="xs"
-                                                    variant={page === pageNum ? 'solid' : 'ghost'}
-                                                    colorScheme={page === pageNum ? 'blue' : 'gray'}
-                                                    onClick={() => setPage(pageNum)}
-                                                    minW="28px"
-                                                >
-                                                    {pageNum}
-                                                </Button>
-                                            );
-                                        })}
-                                        <Button
-                                            size="xs"
-                                            variant="ghost"
-                                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                            isDisabled={page >= totalPages}
-                                        >
-                                            Sau →
-                                        </Button>
-                                    </HStack>
-                                </Flex>
+                            {(search || filterRole || filterLane) && (
+                                <button
+                                    onClick={() => { setSearch(''); setFilterRole(''); setFilterLane(''); }}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 ml-auto whitespace-nowrap transition-colors duration-150"
+                                >
+                                    ✕ Bỏ lọc
+                                </button>
                             )}
-                        </Box>
-                    )}
-                </Box>
-            </Box>
+                        </div>
+                    </div>
 
-            {/* Modals */}
-            {editMember && (
-                <EditMemberModal
-                    isOpen={editModal.isOpen}
-                    onClose={() => { editModal.onClose(); setEditMember(null); }}
-                    member={editMember}
-                    guildId={guild}
-                />
-            )}
-            {deleteMember && (
-                <DeleteMemberModal
-                    isOpen={deleteModal.isOpen}
-                    onClose={() => { deleteModal.onClose(); setDeleteMember(null); }}
-                    member={deleteMember}
-                    guildId={guild}
-                />
-            )}
-        </Flex>
+                    {/* Table */}
+                    <div className="flex-1 overflow-x-auto min-h-[400px]">
+                        {query.isLoading ? (
+                            <div className="h-full flex items-center justify-center py-20">
+                                <span className="text-zinc-400 text-sm animate-pulse">Đang tải dữ liệu...</span>
+                            </div>
+                        ) : query.isError ? (
+                            <div className="h-full flex items-center justify-center py-20 text-red-400 text-sm font-medium">Lỗi hệ thống</div>
+                        ) : (
+                            <table className="w-full text-left border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr className="border-b border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-transparent uppercase">
+                                        <th className="py-4 px-6 text-[11px] font-bold tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0 cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" onClick={() => handleSort('username')}>
+                                            <div className="flex items-center">Discord User <SortIcon field="username" /></div>
+                                        </th>
+                                        <th className="py-4 px-6 text-[11px] font-bold tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0 cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" onClick={() => handleSort('ingameName')}>
+                                            <div className="flex items-center">Ingame & Vai trò <SortIcon field="ingameName" /></div>
+                                        </th>
+                                        <th className="py-4 px-6 text-[11px] font-bold tracking-wider text-zinc-500 dark:text-zinc-400 shrink-0 cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors" onClick={() => handleSort('lane')}>
+                                            <div className="flex items-center">Vị trí (Lane) <SortIcon field="lane" /></div>
+                                        </th>
+                                        <th className="py-4 px-6 text-[11px] font-bold tracking-wider text-zinc-500 dark:text-zinc-400 w-32 text-center">
+                                            Thao tác
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <motion.tbody variants={staggerContainer} initial="hidden" animate="show">
+                                    <AnimatePresence>
+                                        {paged.map((item, idx) => (
+                                            <motion.tr variants={fadeInUp} layoutId={`gw-${item.userId}`} key={item.userId} className="border-b border-zinc-100 dark:border-white/5 hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                                                <td className="py-4 px-6">
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{item.username}</span>
+                                                        <span className="px-2 py-0.5 bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/10 rounded text-[10px] font-mono tracking-widest">{item.userId}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <div className="flex flex-col gap-1.5 items-start">
+                                                        <span className="text-[14px] font-bold text-zinc-900 dark:text-white">
+                                                            {item.ingameName || <span className="text-zinc-400 italic font-normal text-xs">Chưa có tên</span>}
+                                                        </span>
+                                                        <RoleBadge role={item.role} />
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    {item.lane ? (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/30">
+                                                            {item.lane}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium text-zinc-500 border border-zinc-200 dark:border-white/10 dark:text-zinc-500 border-dashed">
+                                                            -- Trống --
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <div className="flex justify-center gap-1.5">
+                                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleEdit(item)} className="p-2 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:text-indigo-400 dark:hover:bg-indigo-500/10 rounded-lg transition-colors duration-150" title="Chỉnh sửa">
+                                                            <FaEdit size={14} />
+                                                        </motion.button>
+                                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDelete(item)} className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 rounded-lg transition-colors duration-150" title="Xoá">
+                                                            <FaTrash size={14} />
+                                                        </motion.button>
+                                                    </div>
+                                                </td>
+                                            </motion.tr>
+                                        ))}
+                                    </AnimatePresence>
+                                    {paged.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="py-20 text-center">
+                                                <div className="flex flex-col items-center justify-center gap-4 text-zinc-400">
+                                                    <BsCalendarCheck size={32} className="opacity-30" />
+                                                    <span className="text-sm font-medium">{(search || filterRole || filterLane) ? 'Không tìm thấy kết quả lọc.' : 'Chưa có thành viên nào được thêm.'}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </motion.tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="px-6 py-4 border-t border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.01] flex items-center justify-between">
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Trang {page} / {totalPages} — Hiển thị {paged.length} dòng</span>
+                            <div className="flex items-center gap-1.5">
+                                <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors duration-150">
+                                    ← Trước
+                                </button>
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum: number;
+                                    if (totalPages <= 5) pageNum = i + 1;
+                                    else if (page <= 3) pageNum = i + 1;
+                                    else if (page >= totalPages - 2) pageNum = totalPages - 4 + i;
+                                    else pageNum = page - 2 + i;
+
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setPage(pageNum)}
+                                            className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center transition-colors duration-150 ${page === pageNum ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black shadow-md' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10'}`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                                <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors duration-150">
+                                    Sau →
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Modals placed outside main container */}
+            <EditMemberModal
+                isOpen={isEditOpen}
+                onClose={() => { setIsEditOpen(false); setEditMember(null); }}
+                member={editMember}
+                guildId={guild}
+            />
+            <DeleteMemberModal
+                isOpen={isDeleteOpen}
+                onClose={() => { setIsDeleteOpen(false); setDeleteMember(null); }}
+                member={deleteMember}
+                guildId={guild}
+            />
+        </div>
     );
 };
 
-GwMembersPage.getLayout = (c) => getGuildLayout({ back: true, children: c });
+GwMembersPage.getLayout = (c: any) => getGuildLayout({ back: true, children: c });
 export default GwMembersPage;

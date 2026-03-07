@@ -1,4 +1,3 @@
-import { FormControl, FormHelperText, Select } from '@chakra-ui/react';
 import { Controller, Control } from 'react-hook-form';
 import { CustomFeatures } from '@/config/types';
 import { FieldLabel, SectionCard } from './SharedComponents';
@@ -14,27 +13,32 @@ export function NotificationChannel({ control, channels }: Props) {
     return (
         <SectionCard
             icon={BsHash}
-            iconColor="var(--chakra-colors-blue-400)"
+            iconColor="blue"
             title="Kênh Thông Báo"
             description="Kênh Discord để bot gửi poll báo danh hàng tuần"
         >
-            <FormControl>
+            <div>
                 <FieldLabel required>Kênh Đăng Ký Poll</FieldLabel>
                 <Controller
                     name="channelId"
                     control={control}
                     render={({ field }) => (
-                        <Select {...field} placeholder="Chọn một kênh..." rounded="xl" isDisabled={channels.isLoading}>
+                        <select
+                            {...field}
+                            disabled={channels.isLoading}
+                            className="w-full h-11 pl-4 pr-10 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <option value="">Chọn một kênh...</option>
                             {channels.data?.filter(c => c.type === 0).map(c => (
                                 <option key={c.id} value={c.id}>#{c.name}</option>
                             ))}
-                        </Select>
+                        </select>
                     )}
                 />
-                <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                     Bot gửi poll vào kênh này mỗi Thứ Sáu.
-                </FormHelperText>
-            </FormControl>
+                </p>
+            </div>
         </SectionCard>
     );
 }

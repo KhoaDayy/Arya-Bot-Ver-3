@@ -44,3 +44,6 @@ coverage/
 
 # One-time scripts
 import-*.js
+
+# agent
+.agent/

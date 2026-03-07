@@ -1,15 +1,6 @@
-// Chakra imports
-import {
-  Box,
-  Flex,
-  FormErrorMessage,
-  FormLabel,
-  Switch,
-  SwitchProps,
-  Text,
-} from '@chakra-ui/react';
 import { ReactNode } from 'react';
 import { useController } from 'react-hook-form';
+import { Switch as ShadcnSwitch } from '@/components/ui/switch';
 import { Form } from './Form';
 import { ControlledInput } from './types';
 
@@ -19,24 +10,30 @@ export const SwitchFieldForm: ControlledInput<{}, boolean> = ({
   ...props
 }) => {
   const {
-    field: { value, ...field },
+    field: { value, onChange, ...field },
     fieldState,
   } = useController(controller);
 
   return (
-    <Form isInvalid={fieldState.invalid} isRequired={control.required} {...control.baseControl}>
-      <Flex justify="space-between" align="center" borderRadius="16px" gap={3}>
-        <Box>
-          <FormLabel fontSize={{ base: '16px', md: 'lg' }} fontWeight="medium" mb={0}>
+    <Form isRequired={control.required} isInvalid={fieldState.invalid} {...(control.baseControl as any)}>
+      <div className="flex justify-between items-center rounded-2xl gap-3">
+        <div>
+          <label className="text-base md:text-lg font-medium mb-0 text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
             {control.label}
-          </FormLabel>
-          <Text fontSize={{ base: 'sm', md: 'md' }} color="TextSecondary">
+            {control.required && <span className="text-red-500">*</span>}
+          </label>
+          <div className="text-sm md:text-base text-zinc-500 dark:text-zinc-400 mt-1">
             {control.description}
-          </Text>
-        </Box>
-        <Switch variant="main" size="md" isChecked={value} {...field} {...props} />
-      </Flex>
-      <FormErrorMessage>{fieldState.error?.message}</FormErrorMessage>
+          </div>
+        </div>
+        <ShadcnSwitch
+          checked={value}
+          onCheckedChange={onChange}
+          {...(field as any)}
+          {...props}
+        />
+      </div>
+      {fieldState.error?.message && <span className="text-red-500 text-sm mt-2">{fieldState.error.message}</span>}
     </Form>
   );
 };
@@ -46,19 +43,21 @@ export function SwitchField(
     id?: string;
     label?: ReactNode;
     desc?: ReactNode;
-  } & SwitchProps
+    checked?: boolean;
+    onCheckedChange?: (checked: boolean) => void;
+  }
 ) {
-  const { id, label, desc, ...rest } = props;
+  const { id, label, desc, checked, onCheckedChange, ...rest } = props;
 
   return (
-    <Flex justify="space-between" align="center" borderRadius="16px" gap={6}>
-      <Box>
-        <FormLabel htmlFor={id} fontSize="md" fontWeight="medium" mb={0}>
+    <div className="flex justify-between items-center rounded-2xl gap-6">
+      <div>
+        <label htmlFor={id} className="text-base font-medium mb-0 text-zinc-900 dark:text-zinc-100">
           {label}
-        </FormLabel>
-        <Text color="TextSecondary">{desc}</Text>
-      </Box>
-      <Switch id={id} variant="main" size="md" {...rest} />
-    </Flex>
+        </label>
+        <div className="text-zinc-500 dark:text-zinc-400 mt-1">{desc}</div>
+      </div>
+      <ShadcnSwitch id={id} checked={checked} onCheckedChange={onCheckedChange} {...(rest as any)} />
+    </div>
   );
 }

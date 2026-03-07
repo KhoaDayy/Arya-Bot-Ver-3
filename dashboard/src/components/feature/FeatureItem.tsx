@@ -1,5 +1,3 @@
-import { Box, Center, Flex, Text } from '@chakra-ui/layout';
-import { Button, ButtonGroup, Badge, HStack } from '@chakra-ui/react';
 import { IdFeature } from '@/utils/common';
 import { IoOptions } from 'react-icons/io5';
 import { BsToggleOn } from 'react-icons/bs';
@@ -20,91 +18,73 @@ export function FeatureItem({
   const mutation = useEnableFeatureMutation();
 
   return (
-    <Box
-      rounded="2xl"
-      border="1px solid"
-      borderColor={enabled ? 'brand.400' : 'whiteAlpha.100'}
-      _light={{
-        borderColor: enabled ? 'brand.400' : 'blackAlpha.100',
-        bg: 'white',
-      }}
-      bg="navy.800"
-      overflow="hidden"
-      transition="all 0.2s ease"
-      boxShadow={enabled ? '0 0 16px rgba(117, 81, 255, 0.15)' : 'none'}
-      _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+    <div
+      className={`rounded-2xl border overflow-hidden transition-all duration-200 bg-white dark:bg-zinc-800 ${enabled
+          ? 'border-indigo-400 dark:border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.15)] hover:-translate-y-0.5 hover:shadow-lg'
+          : 'border-zinc-200 dark:border-white/10 hover:-translate-y-0.5 hover:shadow-lg'
+        }`}
     >
       {/* Card Body */}
-      <Flex direction="row" align="flex-start" gap={4} p={5}>
-        <Center
-          bg={enabled ? 'brand.500' : 'brandAlpha.100'}
-          bgGradient={enabled ? 'linear(135deg, brand.400, brand.600)' : undefined}
-          color={enabled ? 'white' : 'brand.400'}
-          rounded="xl"
-          w="48px"
-          h="48px"
-          fontSize="xl"
-          flexShrink={0}
-          boxShadow={enabled ? '0 4px 12px rgba(66, 42, 251, 0.3)' : 'none'}
-          _dark={{
-            color: enabled ? 'white' : 'brand.200',
-          }}
+      <div className="flex flex-row items-start gap-4 p-5">
+        <div
+          className={`flex items-center justify-center shrink-0 w-12 h-12 rounded-xl text-xl ${enabled
+              ? 'bg-gradient-to-br from-indigo-400 to-indigo-600 text-white shadow-[0_4px_12px_rgba(99,102,241,0.3)]'
+              : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-400 dark:text-indigo-200'
+            }`}
         >
           {feature.icon}
-        </Center>
+        </div>
 
-        <Box flex={1} minW={0}>
-          <HStack gap={2} mb={1} flexWrap="wrap">
-            <Text fontSize={{ base: '15px', md: 'md' }} fontWeight="700" noOfLines={1}>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <p className="text-[15px] md:text-base font-bold truncate text-zinc-900 dark:text-white">
               {feature.name}
-            </Text>
+            </p>
             {enabled ? (
-              <Badge colorScheme="green" rounded="full" px={2} py={0.5} fontSize="2xs" fontWeight="700">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">
                 ● Đang bật
-              </Badge>
+              </span>
             ) : (
-              <Badge colorScheme="gray" rounded="full" px={2} py={0.5} fontSize="2xs">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
                 Chưa bật
-              </Badge>
+              </span>
             )}
-          </HStack>
-          <Text fontSize={{ base: 'xs', md: 'sm' }} color="TextSecondary" noOfLines={2}>
+          </div>
+          <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2">
             {feature.description}
-          </Text>
-        </Box>
-      </Flex>
+          </p>
+        </div>
+      </div>
 
       {/* Card Footer */}
-      <Flex
-        px={5}
-        pb={4}
-        justify="flex-end"
-        borderTop="1px solid"
-        borderColor="whiteAlpha.50"
-        _light={{ borderColor: 'blackAlpha.50' }}
-        pt={3}
-      >
-        <Button
-          size="sm"
-          rounded="xl"
-          fontWeight="600"
-          isLoading={mutation.isLoading}
-          {...(enabled
-            ? {
-              variant: 'action',
-              leftIcon: <IoOptions />,
-              onClick: () => Router.push(`/guilds/${guild}/features/${feature.id}`),
-              children: t.bn['config feature'],
+      <div className="flex justify-end px-5 pb-4 pt-3 border-t border-zinc-100 dark:border-white/5">
+        <button
+          disabled={mutation.isLoading}
+          onClick={() => {
+            if (enabled) {
+              Router.push(`/guilds/${guild}/features/${feature.id}`);
+            } else {
+              mutation.mutate({ enabled: true, guild, feature: feature.id });
             }
-            : {
-              variant: 'outline',
-              colorScheme: 'brand',
-              leftIcon: <BsToggleOn />,
-              onClick: () => mutation.mutate({ enabled: true, guild, feature: feature.id }),
-              children: t.bn['enable feature'],
-            })}
-        />
-      </Flex>
-    </Box>
+          }}
+          className={`inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 ${enabled
+              ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
+              : 'border border-indigo-200 hover:border-indigo-400 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-500/30 dark:text-indigo-400 dark:hover:bg-indigo-500/10'
+            }`}
+        >
+          {enabled ? (
+            <>
+              <IoOptions size={16} />
+              <span>{t.bn['config feature']}</span>
+            </>
+          ) : (
+            <>
+              <BsToggleOn size={16} />
+              <span>{t.bn['enable feature']}</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }

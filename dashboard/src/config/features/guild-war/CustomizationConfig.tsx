@@ -1,4 +1,3 @@
-import { Flex, FormControl, FormHelperText, Input, InputGroup, InputRightAddon, SimpleGrid, Textarea } from '@chakra-ui/react';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { CustomFeatures } from '@/config/types';
 import { FieldLabel } from './SharedComponents';
@@ -11,199 +10,179 @@ export function CustomizationConfig({ form }: Props) {
     const { control } = form;
 
     return (
-        <Flex direction="column" gap={4}>
-            <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-                <FormControl>
+        <div className="flex flex-col gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                     <FieldLabel>Banner URL</FieldLabel>
                     <Controller
                         name="customization.bannerUrl"
                         control={control}
                         render={({ field }) => (
-                            <Input {...field} value={field.value ?? ''} placeholder="https://... (để trống = mặc định)" rounded="xl" variant="main" />
+                            <input
+                                {...field}
+                                value={field.value ?? ''}
+                                placeholder="https://... (để trống = mặc định)"
+                                className="w-full h-11 px-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all"
+                            />
                         )}
                     />
-                    <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                    <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                         Ảnh banner hiển thị trên đầu poll.
-                    </FormHelperText>
-                </FormControl>
+                    </p>
+                </div>
 
-                <FormControl>
+                <div>
                     <FieldLabel>Logo URL</FieldLabel>
                     <Controller
                         name="customization.logoUrl"
                         control={control}
                         render={({ field }) => (
-                            <Input {...field} value={field.value ?? ''} placeholder="https://... (để trống = mặc định)" rounded="xl" variant="main" />
+                            <input
+                                {...field}
+                                value={field.value ?? ''}
+                                placeholder="https://... (để trống = mặc định)"
+                                className="w-full h-11 px-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all"
+                            />
                         )}
                     />
-                    <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                    <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                         Logo nhỏ hiển thị khi poll kết thúc.
-                    </FormHelperText>
-                </FormControl>
-            </SimpleGrid>
+                    </p>
+                </div>
+            </div>
 
-            <FormControl>
+            <div>
                 <FieldLabel>Tiêu đề Poll</FieldLabel>
                 <Controller
                     name="customization.pollTitle"
                     control={control}
                     render={({ field }) => (
-                        <Input {...field} value={field.value ?? ''} placeholder="Báo Danh Guild War" rounded="xl" variant="main" />
+                        <input
+                            {...field}
+                            value={field.value ?? ''}
+                            placeholder="Báo Danh Guild War"
+                            className="w-full h-11 px-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all"
+                        />
                     )}
                 />
-                <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                     Tên hiển thị trên tiêu đề poll. Để trống = &quot;Báo Danh Guild War&quot;
-                </FormHelperText>
-            </FormControl>
+                </p>
+            </div>
 
-            <FormControl>
+            <div>
                 <FieldLabel>Nội dung Ping War</FieldLabel>
                 <Controller
                     name="customization.pingMessage"
                     control={control}
                     render={({ field }) => (
-                        <Textarea
+                        <textarea
                             {...field}
-                            rounded="xl"
                             rows={5}
-                            fontSize="sm"
+                            className="w-full p-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all resize-none"
                         />
                     )}
                 />
-                <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                     Biến hỗ trợ: {'{mention}'} = tag role, {'{day}'} = tên ngày. Dùng \n để xuống dòng.
-                </FormHelperText>
-            </FormControl>
+                </p>
+            </div>
 
-            <FormControl>
+            <div>
                 <FieldLabel>Nội dung Nhắc Nhở</FieldLabel>
                 <Controller
                     name="customization.reminderMessage"
                     control={control}
                     render={({ field }) => (
-                        <Textarea
+                        <textarea
                             {...field}
-                            rounded="xl"
                             rows={3}
-                            fontSize="sm"
+                            className="w-full p-4 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-[#111] focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white text-sm transition-all resize-none"
                         />
                     )}
                 />
-                <FormHelperText fontSize="xs" mt={2} color="TextSecondary">
+                <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                     Biến hỗ trợ: {'{mention}'} = tag role, {'{day}'} = tên ngày, {'{minutes}'} = số phút. Dùng \n để xuống dòng.
-                </FormHelperText>
-            </FormControl>
+                </p>
+            </div>
 
-            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-                <FormControl>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
                     <FieldLabel>Màu Poll</FieldLabel>
                     <Controller
                         name="customization.accentColorPoll"
                         control={control}
                         render={({ field }) => (
-                            <InputGroup>
-                                <InputRightAddon
-                                    bg={field.value || '#5865F2'}
-                                    w="40px"
-                                    h="40px"
-                                    rounded="xl"
-                                    border="1px solid"
-                                    borderColor="whiteAlpha.200"
-                                    _light={{ borderColor: 'blackAlpha.200' }}
-                                    cursor="pointer"
-                                    p={0}
-                                    overflow="hidden"
-                                >
-                                    <Input
+                            <div className="flex w-full items-center p-1 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus-within:bg-white dark:focus-within:bg-[#111] focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
+                                <div className="relative w-10 h-9 rounded-lg overflow-hidden border border-zinc-200 dark:border-white/20 flex-shrink-0 cursor-pointer" style={{ backgroundColor: field.value || '#5865F2' }}>
+                                    <input
                                         type="color"
                                         value={field.value || '#5865F2'}
                                         onChange={field.onChange}
-                                        opacity={0}
-                                        w="full"
-                                        h="full"
-                                        cursor="pointer"
-                                        p={0}
-                                        border="none"
+                                        className="absolute -inset-4 w-20 h-20 opacity-0 cursor-pointer"
                                     />
-                                </InputRightAddon>
-                                <Input {...field} placeholder="#5865F2" rounded="xl" variant="main" />
-                            </InputGroup>
+                                </div>
+                                <input
+                                    {...field}
+                                    placeholder="#5865F2"
+                                    className="flex-1 min-w-0 h-full px-3 bg-transparent border-none focus:ring-0 text-sm text-zinc-900 dark:text-white uppercase outline-none"
+                                    value={field.value || ''}
+                                />
+                            </div>
                         )}
                     />
-                </FormControl>
-                <FormControl>
+                </div>
+                <div>
                     <FieldLabel>Màu Ping</FieldLabel>
                     <Controller
                         name="customization.accentColorPing"
                         control={control}
                         render={({ field }) => (
-                            <InputGroup>
-                                <InputRightAddon
-                                    bg={field.value || '#E74C3C'}
-                                    w="40px"
-                                    h="40px"
-                                    rounded="xl"
-                                    border="1px solid"
-                                    borderColor="whiteAlpha.200"
-                                    _light={{ borderColor: 'blackAlpha.200' }}
-                                    cursor="pointer"
-                                    p={0}
-                                    overflow="hidden"
-                                >
-                                    <Input
+                            <div className="flex w-full items-center p-1 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus-within:bg-white dark:focus-within:bg-[#111] focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
+                                <div className="relative w-10 h-9 rounded-lg overflow-hidden border border-zinc-200 dark:border-white/20 flex-shrink-0 cursor-pointer" style={{ backgroundColor: field.value || '#E74C3C' }}>
+                                    <input
                                         type="color"
                                         value={field.value || '#E74C3C'}
                                         onChange={field.onChange}
-                                        opacity={0}
-                                        w="full"
-                                        h="full"
-                                        cursor="pointer"
-                                        p={0}
-                                        border="none"
+                                        className="absolute -inset-4 w-20 h-20 opacity-0 cursor-pointer"
                                     />
-                                </InputRightAddon>
-                                <Input {...field} placeholder="#E74C3C" rounded="xl" variant="main" />
-                            </InputGroup>
+                                </div>
+                                <input
+                                    {...field}
+                                    placeholder="#E74C3C"
+                                    className="flex-1 min-w-0 h-full px-3 bg-transparent border-none focus:ring-0 text-sm text-zinc-900 dark:text-white uppercase outline-none"
+                                    value={field.value || ''}
+                                />
+                            </div>
                         )}
                     />
-                </FormControl>
-                <FormControl>
+                </div>
+                <div>
                     <FieldLabel>Màu Nhắc Nhở</FieldLabel>
                     <Controller
                         name="customization.accentColorReminder"
                         control={control}
                         render={({ field }) => (
-                            <InputGroup>
-                                <InputRightAddon
-                                    bg={field.value || '#F39C12'}
-                                    w="40px"
-                                    h="40px"
-                                    rounded="xl"
-                                    border="1px solid"
-                                    borderColor="whiteAlpha.200"
-                                    _light={{ borderColor: 'blackAlpha.200' }}
-                                    cursor="pointer"
-                                    p={0}
-                                    overflow="hidden"
-                                >
-                                    <Input
+                            <div className="flex w-full items-center p-1 rounded-xl bg-zinc-100 dark:bg-white/5 border border-transparent focus-within:bg-white dark:focus-within:bg-[#111] focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
+                                <div className="relative w-10 h-9 rounded-lg overflow-hidden border border-zinc-200 dark:border-white/20 flex-shrink-0 cursor-pointer" style={{ backgroundColor: field.value || '#F39C12' }}>
+                                    <input
                                         type="color"
                                         value={field.value || '#F39C12'}
                                         onChange={field.onChange}
-                                        opacity={0}
-                                        w="full"
-                                        h="full"
-                                        cursor="pointer"
-                                        p={0}
-                                        border="none"
+                                        className="absolute -inset-4 w-20 h-20 opacity-0 cursor-pointer"
                                     />
-                                </InputRightAddon>
-                                <Input {...field} placeholder="#F39C12" rounded="xl" variant="main" />
-                            </InputGroup>
+                                </div>
+                                <input
+                                    {...field}
+                                    placeholder="#F39C12"
+                                    className="flex-1 min-w-0 h-full px-3 bg-transparent border-none focus:ring-0 text-sm text-zinc-900 dark:text-white uppercase outline-none"
+                                    value={field.value || ''}
+                                />
+                            </div>
                         )}
                     />
-                </FormControl>
-            </SimpleGrid>
-        </Flex>
+                </div>
+            </div>
+        </div>
     );
 }

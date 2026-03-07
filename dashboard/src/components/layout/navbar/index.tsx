@@ -1,5 +1,3 @@
-import { Flex, useColorModeValue } from '@chakra-ui/react';
-import { navbarBreakpoint } from '@/theme/breakpoints';
 import { ReactNode } from 'react';
 
 import { UserMenu } from '@/components/menu/UserMenu';
@@ -7,46 +5,24 @@ import { SidebarTrigger } from '@/components/SidebarTrigger';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 
 export function Navbar({ links, children }: { links?: ReactNode; children: ReactNode }) {
-  const navbarBg = useColorModeValue('rgba(244, 247, 254, 0.2)', 'rgba(8, 8, 28, 0.5)');
-
   return (
-    <Flex
-      direction="row"
-      mx="auto"
-      bg={navbarBg}
-      backdropFilter="blur(20px)"
-      borderRadius={{ [navbarBreakpoint]: '16px' }}
-      lineHeight="25.6px"
-      px={{ base: '24px', [navbarBreakpoint]: 5 }}
-      py={{ base: '3px', [navbarBreakpoint]: '8px' }}
-      gap={2}
-      justify="space-between"
-      alignItems="stretch"
-    >
+    <div className="flex flex-row mx-auto bg-zinc-50/20 dark:bg-[#08081c]/50 backdrop-blur-xl rounded-none xl:rounded-2xl leading-[25.6px] px-6 xl:px-5 py-1 xl:py-2 gap-2 justify-between items-stretch transition-colors">
       {children}
       <NavbarLinksBox>{links}</NavbarLinksBox>
-    </Flex>
+    </div>
   );
 }
 
 function NavbarLinksBox({ children }: { children?: ReactNode }) {
   return (
-    <Flex
-      justify="end"
-      align="center"
-      direction="row"
-      bg="CardBackground"
-      p="10px"
-      borderRadius="30px"
-      boxShadow="normal"
-    >
+    <div className="flex justify-end items-center flex-row bg-white dark:bg-[#111] p-2.5 rounded-full shadow-sm border border-zinc-200 dark:border-white/5 gap-2">
       {children ?? (
         <>
           <SidebarTrigger />
-          <ThemeSwitch secondary />
-          <UserMenu color="TextPrimary" shadow="normal" bg="CardBackground" />
+          <ThemeSwitch />
+          <UserMenu />
         </>
       )}
-    </Flex>
+    </div>
   );
 }
