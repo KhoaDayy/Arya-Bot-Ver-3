@@ -160,7 +160,7 @@ function buildPingPayload(dayStr, roleId, config = {}) {
         `> Chúc party đánh war thành công rực rỡ! 💪`;
 
     const content = c.pingMessage
-        ? renderTemplate(c.pingMessage, { mention, day: dayLabel })
+        ? renderTemplate(c.pingMessage, { mention, day: dayLabel }).replace(/\\n/g, '\n')
         : defaultMsg;
 
     const container = new ContainerBuilder()
