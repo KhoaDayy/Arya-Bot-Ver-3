@@ -178,6 +178,21 @@ const clubActivitySnapshotSchema = new Schema({
 
 clubActivitySnapshotSchema.index({ guildId: 1, weekId: 1 }, { unique: true });
 
+// --- Guild FAQ Schemas (Auto-response embed) ---
+const guildFaqConfigSchema = new Schema({
+  guildId: { type: String, required: true, unique: true },
+  channelId: { type: String, default: null }, // Kênh sẽ auto trả lời
+  isActive: { type: Boolean, default: true },
+  keywords: { type: [String], default: ["guild", "bang hội", "club", "hoạt động guild", "content guild"] },
+  embed: {
+    title: { type: String, default: null },
+    description: { type: String, default: null },
+    color: { type: String, default: "#A855F7" },
+    footer: { type: String, default: null },
+    thumbnailUrl: { type: String, default: null },
+  }
+}, { timestamps: true });
+
 const VoiceTemplate = mongoose.model('VoiceTemplate', voiceTemplateSchema);
 const VoiceParent = mongoose.model('VoiceParent', voiceParentSchema);
 const VoiceUser = mongoose.model('VoiceUser', voiceUserSchema);
@@ -193,9 +208,10 @@ const GuildWarMember = mongoose.model('GuildWarMember', guildWarMemberSchema);
 
 const ClubActivityConfig = mongoose.model('ClubActivityConfig', clubActivityConfigSchema);
 const ClubActivitySnapshot = mongoose.model('ClubActivitySnapshot', clubActivitySnapshotSchema);
+const GuildFaqConfig = mongoose.model('GuildFaqConfig', guildFaqConfigSchema);
 
 module.exports = {
   VoiceTemplate, VoiceParent, VoiceUser, FacePreset, GuildConfig, Conversation, WwmStats,
   GuildWarConfig, GuildWarRegistration, GuildWarStats, GuildWarMember,
-  ClubActivityConfig, ClubActivitySnapshot
+  ClubActivityConfig, ClubActivitySnapshot, GuildFaqConfig
 };

@@ -1,7 +1,40 @@
 const express = require('express');
 const cors = require('cors');
-const { GuildWarRegistration, GuildWarStats, GuildWarConfig, GuildConfig, GuildWarMember, ClubActivityConfig, FacePreset } = require('../db/schemas');
+const { GuildWarRegistration, GuildWarStats, GuildWarConfig, GuildConfig, GuildWarMember, ClubActivityConfig, FacePreset, GuildFaqConfig } = require('../db/schemas');
 const { getCurrentWeekId } = require('../services/guildWar');
+
+const DEFAULT_GUILD_FAQ_KEYWORDS = [
+    "guild",
+    "bang hội",
+    "club",
+    "hoạt động guild",
+    "content guild",
+];
+
+const DEFAULT_GUILD_FAQ_EMBED = {
+    title: "Sau 21h30 – Party Guild",
+    description:
+        "Chỉ cần vào treo trong guild cùng mọi người là được.\n" +
+        "Sẽ nhận điểm cống hiến guild và xu / phần thưởng khác.\n\n" +
+        "**Các hoạt động khác của Guild:**\n" +
+        "1. **Breaking Army**\n" +
+        "Thời gian: 17h Thứ 7 & Chủ Nhật\n" +
+        "Hình thức: solo đánh boss\n" +
+        "Chỉ cần đánh qua được boss là nhận quà và điểm cửa hàng guild.\n\n" +
+        "2. **Guild War**\n" +
+        "Thời gian: 19h30 Thứ 7 & Chủ Nhật\n" +
+        "Hình thức: 30 người guild mình vs 30 người guild khác\n" +
+        "Thường phải vào Discord để nghe call chiến thuật, chia đường giống game MOBA.\n" +
+        "Cũng nhận điểm cửa hàng guild.\n\n" +
+        "3. **Solo PvP**\n" +
+        "Thời gian: 22h Thứ 7 & Chủ Nhật\n" +
+        "Đấu PvP với thành viên trong guild.\n\n" +
+        "4. **Guild Boss**\n" +
+        "Giống boss tuần, đánh boss nhận quà và điểm cửa hàng guild.",
+    color: "#A855F7",
+    footer: "Hỏi thêm tại Discord nếu cần hỗ trợ.",
+    thumbnailUrl: "",
+};
 
 // ── API Key Auth Middleware ─────────────────────────────────────────────────
 function apiKeyAuth(req, res, next) {
@@ -76,10 +109,12 @@ function startDashboardApi(client, clubActivity) {
         // Kiểm tra các features đã thiết lập trên Database
         const guildConfig = await GuildConfig.findOne({ guildId });
         const guiWarConfig = await GuildWarConfig.findOne({ guildId });
+        const guildFaqConfig = await GuildFaqConfig.findOne({ guildId });
 
         const enabledFeatures = [];
         if (guildConfig && guildConfig.faceForumId) enabledFeatures.push("face-forum");
         if (guiWarConfig && guiWarConfig.isActive) enabledFeatures.push("guiwar");
+        if (guildFaqConfig && guildFaqConfig.isActive) enabledFeatures.push("guild-faq");
 
         // Required by fuma-nama dashboard interface
         return res.json({
@@ -406,6 +441,25 @@ function startDashboardApi(client, clubActivity) {
                 customization: config.customization || {},
             });
         }
+
+        if (featureId === 'guild-faq') {
+            const config = await GuildFaqConfig.findOne({ guildId });
+            if (!config || !config.isActive) return res.status(404).json({ error: "Not enabled" });
+            const embed = config.embed || {};
+
+            return res.json({
+                channelId: config.channelId,
+                isActive: config.isActive,
+                keywords: config.keywords ?? DEFAULT_GUILD_FAQ_KEYWORDS,
+                embed: {
+                    title: embed.title ?? DEFAULT_GUILD_FAQ_EMBED.title,
+                    description: embed.description ?? DEFAULT_GUILD_FAQ_EMBED.description,
+                    color: embed.color ?? DEFAULT_GUILD_FAQ_EMBED.color,
+                    footer: embed.footer ?? DEFAULT_GUILD_FAQ_EMBED.footer,
+                    thumbnailUrl: embed.thumbnailUrl ?? DEFAULT_GUILD_FAQ_EMBED.thumbnailUrl,
+                },
+            });
+        }
         return res.status(404).json({ error: "Feature not found" });
     });
 
@@ -418,6 +472,12 @@ function startDashboardApi(client, clubActivity) {
                 await GuildConfig.updateOne({ guildId }, { faceForumId: "" }, { upsert: true });
             } else if (featureId === 'guiwar') {
                 await GuildWarConfig.updateOne({ guildId }, { isActive: true }, { upsert: true });
+            } else if (featureId === 'guild-faq') {
+                await GuildFaqConfig.updateOne(
+                    { guildId },
+                    { isActive: true, keywords: DEFAULT_GUILD_FAQ_KEYWORDS, embed: DEFAULT_GUILD_FAQ_EMBED },
+                    { upsert: true }
+                );
             }
             return res.json({ success: true });
         } catch (e) {
@@ -435,6 +495,8 @@ function startDashboardApi(client, clubActivity) {
                 await GuildConfig.updateOne({ guildId }, { faceForumId: null });
             } else if (featureId === 'guiwar') {
                 await GuildWarConfig.updateOne({ guildId }, { isActive: false });
+            } else if (featureId === 'guild-faq') {
+                await GuildFaqConfig.updateOne({ guildId }, { isActive: false });
             }
             return res.json({ success: true });
         } catch (e) {
@@ -493,6 +555,37 @@ function startDashboardApi(client, clubActivity) {
                 voiceCategory: config.voiceCategory,
                 voiceNameTemplate: config.voiceNameTemplate || "Guild War",
                 customization: config.customization || {},
+            });
+        }
+
+        if (featureId === 'guild-faq') {
+            const keywords = Array.isArray(options.keywords)
+                ? options.keywords.map((k) => String(k)).filter((k) => k.trim())
+                : DEFAULT_GUILD_FAQ_KEYWORDS;
+
+            const config = await GuildFaqConfig.findOneAndUpdate(
+                { guildId },
+                {
+                    channelId: options.channelId || null,
+                    isActive: options.isActive ?? true,
+                    keywords,
+                    embed: options.embed || {},
+                },
+                { upsert: true, new: true }
+            );
+
+            const embed = config.embed || {};
+            return res.json({
+                channelId: config.channelId,
+                isActive: config.isActive,
+                keywords: config.keywords ?? DEFAULT_GUILD_FAQ_KEYWORDS,
+                embed: {
+                    title: embed.title ?? DEFAULT_GUILD_FAQ_EMBED.title,
+                    description: embed.description ?? DEFAULT_GUILD_FAQ_EMBED.description,
+                    color: embed.color ?? DEFAULT_GUILD_FAQ_EMBED.color,
+                    footer: embed.footer ?? DEFAULT_GUILD_FAQ_EMBED.footer,
+                    thumbnailUrl: embed.thumbnailUrl ?? DEFAULT_GUILD_FAQ_EMBED.thumbnailUrl,
+                },
             });
         }
 

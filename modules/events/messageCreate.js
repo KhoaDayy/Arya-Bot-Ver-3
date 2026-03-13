@@ -1,8 +1,42 @@
-const { Events } = require("discord.js");
+const { Events, EmbedBuilder } = require("discord.js");
 const { fancyLog } = require("../../utils/consoleLogger");
+const { GuildFaqConfig } = require("../../db/schemas");
 
 const IGNORE_KEYWORDS = ["bot", "spam"];
 const IGNORED_CHANNEL = process.env.IGNORED_CHANNEL_ID;
+
+const DEFAULT_GUILD_FAQ_KEYWORDS = [
+    "guild",
+    "bang hội",
+    "club",
+    "hoạt động guild",
+    "content guild",
+];
+
+const DEFAULT_GUILD_FAQ_EMBED = {
+    title: "Sau 21h30 – Party Guild",
+    description:
+        "Chỉ cần vào treo trong guild cùng mọi người là được.\n" +
+        "Sẽ nhận điểm cống hiến guild và xu / phần thưởng khác.\n\n" +
+        "**Các hoạt động khác của Guild:**\n" +
+        "1. **Breaking Army**\n" +
+        "Thời gian: 17h Thứ 7 & Chủ Nhật\n" +
+        "Hình thức: solo đánh boss\n" +
+        "Chỉ cần đánh qua được boss là nhận quà và điểm cửa hàng guild.\n\n" +
+        "2. **Guild War**\n" +
+        "Thời gian: 19h30 Thứ 7 & Chủ Nhật\n" +
+        "Hình thức: 30 người guild mình vs 30 người guild khác\n" +
+        "Thường phải vào Discord để nghe call chiến thuật, chia đường giống game MOBA.\n" +
+        "Cũng nhận điểm cửa hàng guild.\n\n" +
+        "3. **Solo PvP**\n" +
+        "Thời gian: 22h Thứ 7 & Chủ Nhật\n" +
+        "Đấu PvP với thành viên trong guild.\n\n" +
+        "4. **Guild Boss**\n" +
+        "Giống boss tuần, đánh boss nhận quà và điểm cửa hàng guild.",
+    color: "#A855F7",
+    footer: "Hỏi thêm tại Discord nếu cần hỗ trợ.",
+    thumbnailUrl: "",
+};
 
 module.exports = {
     name: Events.MessageCreate,
@@ -22,6 +56,46 @@ module.exports = {
                         content: message.content || "<media>",
                     });
                 } catch (e) { /* ignore logging errors */ }
+            }
+        }
+
+        const messageText = (message.content || '').trim();
+        const messageLower = messageText.toLowerCase();
+
+        if (message.guildId && messageText && !messageText.startsWith('!')) {
+            try {
+                const config = await GuildFaqConfig.findOne({ guildId: message.guildId });
+                if (config?.isActive) {
+                    const channelMatch = !config.channelId || config.channelId === message.channel.id;
+                    if (channelMatch) {
+                        const keywords = (config.keywords && config.keywords.length > 0)
+                            ? config.keywords
+                            : DEFAULT_GUILD_FAQ_KEYWORDS;
+                        const matched = keywords.some((keyword) =>
+                            keyword && messageLower.includes(String(keyword).toLowerCase())
+                        );
+
+                        if (matched) {
+                            const embedConfig = { ...DEFAULT_GUILD_FAQ_EMBED, ...(config.embed || {}) };
+                            const embed = new EmbedBuilder()
+                                .setColor(embedConfig.color || DEFAULT_GUILD_FAQ_EMBED.color)
+                                .setTitle(embedConfig.title || DEFAULT_GUILD_FAQ_EMBED.title)
+                                .setDescription(embedConfig.description || DEFAULT_GUILD_FAQ_EMBED.description);
+
+                            if (embedConfig.footer) {
+                                embed.setFooter({ text: embedConfig.footer });
+                            }
+                            if (embedConfig.thumbnailUrl) {
+                                embed.setThumbnail(embedConfig.thumbnailUrl);
+                            }
+
+                            await message.channel.send({ embeds: [embed] });
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("[GuildFAQ] Failed to respond:", error);
             }
         }
         // Kiểm tra xem có phải lệnh !ask không (chấp nhận !ask hoặc !ask <nội dung>)

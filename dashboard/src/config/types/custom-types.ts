@@ -13,6 +13,20 @@ export type CustomGuildInfo = GuildInfo & {};
 export type CustomFeatures = {
   'face-forum': { faceForumId?: string };
   guiwar: GuildWarFeature;
+  'guild-faq': GuildFaqFeature;
+};
+
+export type GuildFaqFeature = {
+  channelId?: string;
+  isActive?: boolean;
+  keywords?: string[];
+  embed?: {
+    title?: string;
+    description?: string;
+    color?: string;
+    footer?: string;
+    thumbnailUrl?: string;
+  };
 };
 
 export type GuildWarFeature = {
