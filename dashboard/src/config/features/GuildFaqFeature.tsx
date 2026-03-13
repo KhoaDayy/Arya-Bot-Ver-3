@@ -124,7 +124,7 @@ export const useGuildFaqFeature: UseFormRender<CustomFeatures['guild-faq']> = (d
           title="Kênh Trả Lời"
           description="Chọn kênh và bật/tắt auto-response FAQ"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <FieldLabel required>Kênh trả lời FAQ</FieldLabel>
               <Controller
@@ -143,13 +143,10 @@ export const useGuildFaqFeature: UseFormRender<CustomFeatures['guild-faq']> = (d
               </p>
             </div>
 
-            <div className="flex flex-col justify-between">
+            <div>
               <FieldLabel>Bật FAQ</FieldLabel>
-              <div className="flex items-center gap-4 bg-zinc-100 dark:bg-white/5 border border-transparent rounded-xl px-4 py-3">
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">Kích hoạt trả lời tự động</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Tắt nếu muốn ngưng phản hồi FAQ.</p>
-                </div>
+              <div className="flex items-center justify-between h-11 bg-zinc-100 dark:bg-white/5 border border-transparent rounded-xl px-4">
+                <span className="text-sm font-semibold text-zinc-900 dark:text-white">Kích hoạt trả lời tự động</span>
                 <Controller
                   name="isActive"
                   control={form.control}
@@ -162,6 +159,9 @@ export const useGuildFaqFeature: UseFormRender<CustomFeatures['guild-faq']> = (d
                   )}
                 />
               </div>
+              <p className="text-xs mt-2 text-zinc-500 dark:text-zinc-400">
+                Tắt nếu muốn ngưng phản hồi FAQ tự động.
+              </p>
             </div>
           </div>
         </SectionCard>
